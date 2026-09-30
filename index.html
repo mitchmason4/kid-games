@@ -149,7 +149,7 @@
 <div id="overlay">
   <div class="card">
     <div class="title">🎈 Bubble Pop! 🎈</div>
-    <div class="subtitle">Tap the <b>animal</b> bubbles!<br>Leave the grumpy ones alone 😤</div>
+    <div class="subtitle">Tap the <b>green</b> animal bubbles! 🟢<br>Leave the <b>red</b> grumpy ones alone 🔴</div>
     <div><span class="hint-hand">👆</span></div>
     <button id="playBtn" aria-label="play">▶</button>
   </div>
@@ -239,11 +239,10 @@
   var FACES = ["🐶", "🐱", "🐷", "🐸", "🐵", "🐰", "🐥", "🦁", "🐢", "🐙", "🦄", "🐝", "🐳"];
   var BAD_FACES = ["😒", "😤", "👾", "🤖", "👻", "😾"];
   var BAD_COLORS = [
-    ["#dcdcdc", "#a3a3a3"], ["#d8cfe3", "#9d8cb5"], ["#ddd6c7", "#a89c80"]
+    ["#ffd9d9", "#ff9e9e"], ["#ffe3e3", "#ffabab"], ["#ffd0d0", "#ff8f8f"]
   ];
   var COLORS = [
-    ["#ffd6e8", "#ff9ec7"], ["#d6f0ff", "#8ed1ff"], ["#fff3c4", "#ffdf6b"],
-    ["#dcffe0", "#93e6a8"], ["#e9dcff", "#c3a6ff"], ["#ffe6d6", "#ffb38a"]
+    ["#dcffe0", "#93e6a8"], ["#e6ffdc", "#a8ec9a"], ["#d2f5d2", "#8fdc8f"]
   ];
 
   var bubbles = [], particles = [], floaters = [], confetti = [], rings = [];
@@ -288,7 +287,7 @@
       x: rand(r + 10, W - r - 10),
       y: H + r + 10,
       r: r,
-      vy: rand(55, 120) / 60,
+      vy: rand(55, 120) * 1.1 / 60,
       wobble: rand(0, Math.PI * 2),
       wobbleSpeed: rand(1, 2.4),
       wobbleAmp: rand(8, 26),

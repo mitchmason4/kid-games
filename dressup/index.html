@@ -41,8 +41,8 @@
   }
   #svgFront { z-index: 4; pointer-events: none; }
   #hat {
-    position: absolute; z-index: 5; top: -26px; left: 0; width: 100%;
-    text-align: center; font-size: 54px; line-height: 1; pointer-events: none;
+    position: absolute; z-index: 5; top: -30px; left: 0; width: 100%;
+    text-align: center; font-size: 44px; line-height: 1; pointer-events: none;
     filter: drop-shadow(0 3px 3px rgba(0,0,0,.18));
   }
   #companion {
@@ -209,13 +209,13 @@ function hairBack(i){
 function hairFringe(i){
   var H = (i===4) ? PINKH : BLOND, c = H.c, s = '';
   if(i===1){
-    s = '<path d="M54,56 L54,32 Q100,16 146,32 L146,56 Q100,42 54,56 Z" fill="'+c+'"/>'
+    s = '<path d="M54,48 L54,30 Q100,14 146,30 L146,48 Q100,36 54,48 Z" fill="'+c+'"/>'
       + '<rect x="50" y="62" width="16" height="118" rx="8" fill="'+c+'"/>'
       + '<rect x="134" y="62" width="16" height="118" rx="8" fill="'+c+'"/>';
   } else if(i===2){
-    s = '<path d="M54,56 Q68,26 100,28 Q138,28 146,56 Q122,40 100,47 Q78,40 54,56 Z" fill="'+c+'"/>';
+    s = '<path d="M56,46 Q70,20 100,22 Q136,22 144,46 Q122,32 100,39 Q78,32 56,46 Z" fill="'+c+'"/>';
   } else {
-    s = '<path d="M54,58 Q58,26 100,24 Q142,26 146,58 Q136,42 124,55 Q112,40 100,55 Q88,40 76,55 Q64,42 54,58 Z" fill="'+c+'"/>';
+    s = '<path d="M56,46 Q62,20 100,18 Q138,20 144,46 Q134,32 122,42 Q110,30 98,41 Q86,30 74,42 Q64,32 56,46 Z" fill="'+c+'"/>';
   }
   return s;
 }

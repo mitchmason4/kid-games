@@ -2,12 +2,14 @@
    run offline (e.g. on a plane) after the first visit with internet.
    Strategy: stale-while-revalidate — serve the cached copy instantly,
    refresh it in the background, fall back to network when uncached. */
-var CACHE = 'kid-games-v1';
+var CACHE = 'kid-games-v2';
 var CORE = [
   '/kid-games/',
   '/kid-games/memory/',
+  '/kid-games/dressup/',
   '/kid-games/icon-bubble.png',
-  '/kid-games/icon-match.png'
+  '/kid-games/icon-match.png',
+  '/kid-games/icon-dressup.png'
 ];
 
 self.addEventListener('install', function (e) {

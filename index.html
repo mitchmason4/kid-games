@@ -6,6 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#7ec8f7">
+<link rel="apple-touch-icon" href="/kid-games/icon-bubble.png">
 <title>Bubble Pop! 🎈</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -568,6 +569,14 @@
     ctx.restore();
   }
 })();
+</script>
+<script>
+// Offline support: cache the game on first visit so it runs without internet.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/kid-games/sw.js', { scope: '/kid-games/' });
+  });
+}
 </script>
 </body>
 </html>

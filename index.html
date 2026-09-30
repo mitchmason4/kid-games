@@ -276,6 +276,14 @@
   function rand(a, b) { return a + Math.random() * (b - a); }
   function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
+  // difficulty ramps with score: +20% faster at 20 pops, +20% more at 50
+  function speedMult() {
+    var m = 1.32;
+    if (score >= 50) return m * 1.44;
+    if (score >= 20) return m * 1.2;
+    return m;
+  }
+
   function spawnBubble() {
     if (bubbles.length >= 12) return;
     spawnCount++;
@@ -287,7 +295,7 @@
       x: rand(r + 10, W - r - 10),
       y: H + r + 10,
       r: r,
-      vy: rand(55, 120) * 1.32 / 60, // 10% bump, then 20% more
+      vy: rand(55, 120) * speedMult() / 60,
       wobble: rand(0, Math.PI * 2),
       wobbleSpeed: rand(1, 2.4),
       wobbleAmp: rand(8, 26),

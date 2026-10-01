@@ -34,7 +34,7 @@
   #doll img { position: absolute; left: 0; width: 100%; display: block; }
   #imgHead { top: 0; height: 100%; z-index: 3; }
   #imgBody { top: 40.402%; height: 46.652%; z-index: 1; }
-  #imgFeet { top: 87.054%; height: 12.946%; z-index: 2; }
+  #imgFeet { top: 86.25%; height: 13.75%; z-index: 2; }
   #companion {
     position: absolute; z-index: 4; right: 12px; bottom: 8px; font-size: 62px; line-height: 1;
     filter: drop-shadow(0 4px 4px rgba(0,0,0,.15)); animation: bob 2.6s ease-in-out infinite;
@@ -182,7 +182,7 @@ function save(){ try{ localStorage.setItem('dressUpEmi', JSON.stringify(state));
 /* ---------- render ---------- */
 function headURL(){ return 'assets/sections/head-'+HAIR[state.hair].s+'-'+HATS[state.crown].s+'.png'; }
 function bodyURL(){ return 'assets/sections/body-'+DRESSES[state.dress].s+'-'+JEWELS[state.jewel].s+'.jpg'; }
-function feetURL(){ return 'assets/sections/feet-'+SHOES[state.shoes].s+'.jpg'; }
+function feetURL(){ return 'assets/sections/feet-'+SHOES[state.shoes].s+'.png'; }
 
 function render(){
   $('imgHead').src = headURL();
@@ -280,7 +280,7 @@ window.addEventListener('load', function(){
       urls.push('assets/sections/head-'+HAIR[i].s+'-'+HATS[j].s+'.png');
     for(i=0;i<DRESSES.length;i++) for(j=0;j<JEWELS.length;j++)
       urls.push('assets/sections/body-'+DRESSES[i].s+'-'+JEWELS[j].s+'.jpg');
-    for(i=0;i<SHOES.length;i++) urls.push('assets/sections/feet-'+SHOES[i].s+'.jpg');
+    for(i=0;i<SHOES.length;i++) urls.push('assets/sections/feet-'+SHOES[i].s+'.png');
     for(i=0;i<HAIR.length;i++) urls.push('assets/thumbs/hair-'+HAIR[i].s+'.jpg');
     for(i=0;i<HATS.length;i++) urls.push('assets/thumbs/hat-'+HATS[i].s+'.jpg');
     for(i=0;i<JEWELS.length;i++) urls.push('assets/thumbs/jewel-'+JEWELS[i].s+'.jpg');

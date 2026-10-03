@@ -108,9 +108,54 @@ var TWINKLE=[1047,1175,1319,1568,1760];
 function twinkle(){ tone(TWINKLE[(Math.random()*TWINKLE.length)|0],0,0.18,'triangle',0.045); }
 
 /* ---------- state ---------- */
-var LEVELS = { 1:{cols:5, rows:7,  loops:0.20},
-               2:{cols:7, rows:10, loops:0.08},
-               3:{cols:9, rows:13, loops:0.0} };
+/* ---------- maze varieties: shapes x sizes per level ---------- */
+var LEVELS = {
+ 1:[ {shape:'rect',   cols:5, rows:7,  loops:0.20, name:'🌿 Garden Maze'},
+     {shape:'round',  cols:7, rows:7,  loops:0.18, name:'🌸 Round Garden'},
+     {shape:'heart',  cols:7, rows:8,  loops:0.18, name:'💖 Heart Maze'},
+     {shape:'diamond',cols:7, rows:7,  loops:0.18, name:'💎 Diamond Maze'},
+     {shape:'cross',  cols:7, rows:7,  loops:0.18, name:'✨ Crossroads Maze'} ],
+ 2:[ {shape:'rect',   cols:7, rows:10, loops:0.08, name:'🌿 Garden Maze'},
+     {shape:'heart',  cols:8, rows:10, loops:0.08, name:'💖 Heart Maze'},
+     {shape:'diamond',cols:9, rows:9,  loops:0.08, name:'💎 Diamond Maze'},
+     {shape:'round',  cols:9, rows:9,  loops:0.08, name:'🌸 Round Garden'},
+     {shape:'cross',  cols:9, rows:9,  loops:0.08, name:'✨ Crossroads Maze'},
+     {shape:'rect',   cols:6, rows:12, loops:0.05, name:'🌀 Long Maze'} ],
+ 3:[ {shape:'rect',   cols:9, rows:13, loops:0.0, name:'🌿 Big Garden Maze'},
+     {shape:'heart',  cols:10,rows:12, loops:0.0, name:'💖 Big Heart Maze'},
+     {shape:'diamond',cols:11,rows:11, loops:0.0, name:'💎 Big Diamond Maze'},
+     {shape:'round',  cols:11,rows:11, loops:0.0, name:'🌸 Big Round Garden'},
+     {shape:'cross',  cols:11,rows:11, loops:0.0, name:'✨ Big Crossroads'},
+     {shape:'rect',   cols:8, rows:14, loops:0.0, name:'🌀 Super Long Maze'} ]
+};
+var PALETTES = [
+ { floor:'#fff8ec', alt:'rgba(255,183,213,0.10)', hedge:['#3e9c4f','#5cb85c','#7ed37e'],
+   flowers:['#ff8fb2','#ffd54f','#ffffff','#e1a7ff'], startPad:'#ffb3d9', goalPad:'#b3e5ff' },
+ { floor:'#fff3e2', alt:'rgba(255,170,80,0.13)', hedge:['#2e8b57','#43a96b','#6cc98a'],
+   flowers:['#ff9e5e','#ff5d8f','#fff3b0','#ffffff'], startPad:'#ffc4a3', goalPad:'#a8e6ff' },
+ { floor:'#fdf0ff', alt:'rgba(190,140,255,0.12)', hedge:['#3f9142','#5cab60','#86d186'],
+   flowers:['#e1a7ff','#ff8fb2','#ffffff','#ffd54f'], startPad:'#e3b3ff', goalPad:'#b3ffd9' }
+];
+function inShape(shape,c,r){
+  if(shape==='rect') return true;
+  var u = cols>1 ? (c/(cols-1))*2-1 : 0;
+  var v = rows>1 ? (r/(rows-1))*2-1 : 0;      /* v: -1 top, +1 bottom */
+  if(shape==='round')   return u*u+v*v <= 1.12;
+  if(shape==='diamond') return Math.abs(u)+Math.abs(v) <= 1.08;
+  if(shape==='cross')   return Math.abs(u)<=0.44 || Math.abs(v)<=0.44;
+  if(shape==='heart'){
+    var x=u*1.04, y=-v*1.04;                   /* y up */
+    var lobeL=(x+0.42)*(x+0.42)+(y-0.36)*(y-0.36) <= 0.34;
+    var lobeR=(x-0.42)*(x-0.42)+(y-0.36)*(y-0.36) <= 0.34;
+    var body = y<=0.40 && Math.abs(x) <= 0.99-(0.40-y)*0.56;
+    var notch = y>0.55 && Math.abs(x)<0.30;    /* the dip between the lobes */
+    return (lobeL||lobeR||body) && !notch;
+  }
+  return true;
+}
+/* where the fairy starts for each shape (normalized u,v target) */
+var START_TARGET = { rect:[-1,-1], round:[-0.72,-0.72], heart:[0,-0.85],
+                     diamond:[0,-1], cross:[0,-1] };
 var level = parseInt(localStorage.getItem('fairyMazeLevel')||'1',10);
 if(!LEVELS[level]) level = 1;
 var soundOn = localStorage.getItem('fairyMazeSound') !== 'off';
@@ -119,7 +164,8 @@ var stage = $('stage'), canvas = $('game'), ctx = canvas.getContext('2d');
 var DPR = Math.min(window.devicePixelRatio||1, 2);
 
 /* maze model: cells[c][r] = {n,e,s,w} walls, all coords below in GRID units */
-var cols=0, rows=0, cells=null, solution=[], seed=1;
+var cols=0, rows=0, cells=null, mask=null, solution=[], seed=1;
+var startCell=[0,0], goalCell=[0,0], combo=null, lastCombo=null, pal=PALETTES[0];
 var fairy = { x:0.5, y:0.5 };            /* grid units */
 var FAIRY_R = 0.21, WALL_HALF = 0.15;    /* grid units */
 var dragging=false, pointer=null, won=false;
@@ -136,58 +182,98 @@ var unicornImg = new Image(); unicornImg.src='assets/unicorn.png';
 /* ---------- seeded rng for wall flowers ---------- */
 function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; var t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
 
-/* ---------- maze generation: recursive backtracker + a few loops ---------- */
+/* ---------- maze generation: backtracker over the shape's cells.
+   The unicorn always waits at the cell FARTHEST from the start,
+   so every maze is as long as its shape allows. ---------- */
 function genMaze(){
-  var L = LEVELS[level]; cols=L.cols; rows=L.rows;
-  cells=[]; var c,r;
-  for(c=0;c<cols;c++){ cells.push([]); for(r=0;r<rows;r++) cells[c].push({n:1,e:1,s:1,w:1,seen:0}); }
-  var stack=[[0,0]]; cells[0][0].seen=1;
+  var pool=LEVELS[level];
+  var pick=(Math.random()*pool.length)|0;
+  if(pool.length>1 && pool[pick]===lastCombo) pick=(pick+1)%pool.length;
+  combo=pool[pick]; lastCombo=combo;
+  cols=combo.cols; rows=combo.rows;
+  pal=PALETTES[(Math.random()*PALETTES.length)|0];
+  var straightBias = Math.random()<0.5;   /* long corridors vs twisty turns */
+  cells=[]; mask=[]; var c,r;
+  for(c=0;c<cols;c++){ cells.push([]); mask.push([]);
+    for(r=0;r<rows;r++){ var inside=inShape(combo.shape,c,r);
+      mask[c].push(inside);
+      cells[c].push({n:1,e:1,s:1,w:1,seen:inside?0:1}); } }
+  /* start: the in-shape cell nearest the shape's start target */
+  var tgt=START_TARGET[combo.shape]||[-1,-1], best=1e9;
+  for(c=0;c<cols;c++) for(r=0;r<rows;r++){ if(!mask[c][r]) continue;
+    var u=cols>1?(c/(cols-1))*2-1:0, v=rows>1?(r/(rows-1))*2-1:0;
+    var dd=(u-tgt[0])*(u-tgt[0])+(v-tgt[1])*(v-tgt[1]);
+    if(dd<best){ best=dd; startCell=[c,r]; } }
   var DIRS=[[0,-1,'n','s'],[1,0,'e','w'],[0,1,'s','n'],[-1,0,'w','e']];
+  var stack=[startCell]; cells[startCell[0]][startCell[1]].seen=1;
   while(stack.length){
     var cur=stack[stack.length-1], cx=cur[0], cy=cur[1], opts=[];
     for(var i=0;i<4;i++){ var nx=cx+DIRS[i][0], ny=cy+DIRS[i][1];
-      if(nx>=0&&ny>=0&&nx<cols&&ny<rows&&!cells[nx][ny].seen) opts.push(DIRS[i]); }
+      if(nx>=0&&ny>=0&&nx<cols&&ny<rows&&mask[nx][ny]&&!cells[nx][ny].seen) opts.push(DIRS[i]); }
     if(!opts.length){ stack.pop(); continue; }
-    var d=opts[(Math.random()*opts.length)|0], mx=cx+d[0], my=cy+d[1];
+    var d=null;
+    if(straightBias && stack.length>1){
+      var px=stack[stack.length-2][0], py=stack[stack.length-2][1];
+      for(var j=0;j<opts.length;j++)
+        if(cx-px===opts[j][0] && cy-py===opts[j][1] && Math.random()<0.6) d=opts[j];
+    }
+    if(!d) d=opts[(Math.random()*opts.length)|0];
+    var mx=cx+d[0], my=cy+d[1];
     cells[cx][cy][d[2]]=0; cells[mx][my][d[3]]=0; cells[mx][my].seen=1;
     stack.push([mx,my]);
   }
-  /* knock down a few extra interior walls to make loops (gentler for little kids) */
-  var extra = Math.floor(cols*rows*L.loops);
-  for(var k=0;k<extra;k++){
-    var x=1+((Math.random()*(cols-2))|0), y=1+((Math.random()*(rows-2))|0);
-    if(Math.random()<0.5) { cells[x][y].e=0; cells[x+1][y].w=0; }
-    else { cells[x][y].s=0; cells[x][y+1].n=0; }
+  /* safety net: stitch in any in-shape cell the carve could not reach */
+  var changed=true;
+  while(changed){ changed=false;
+    for(c=0;c<cols;c++) for(r=0;r<rows;r++){
+      if(!mask[c][r]||cells[c][r].seen) continue;
+      for(var i2=0;i2<4;i2++){ var ax=c+DIRS[i2][0], ay=r+DIRS[i2][1];
+        if(ax>=0&&ay>=0&&ax<cols&&ay<rows&&mask[ax][ay]&&cells[ax][ay].seen){
+          cells[c][r][DIRS[i2][2]]=0; cells[ax][ay][DIRS[i2][3]]=0;
+          cells[c][r].seen=1; changed=true; break; } }
+    }
   }
-  /* solution path via BFS from start to goal */
-  solution = solve();
-  seed = (Math.random()*1e9)|0;
-  fairy.x=0.5; fairy.y=0.5; won=false; sparkles.length=0;
-}
-function solve(){
-  var prev={}, q=[[0,0]], seen={'0,0':1};
+  /* knock down a few extra walls to make loops (gentler for little kids) */
+  var extra=Math.floor(cols*rows*combo.loops), guard=0;
+  while(extra>0 && guard++<600){
+    var x=(Math.random()*cols)|0, y=(Math.random()*rows)|0;
+    if(!mask[x][y]) continue;
+    if(Math.random()<0.5){ if(x+1<cols&&mask[x+1][y]&&cells[x][y].e){ cells[x][y].e=0; cells[x+1][y].w=0; extra--; } }
+    else { if(y+1<rows&&mask[x][y+1]&&cells[x][y].s){ cells[x][y].s=0; cells[x][y+1].n=0; extra--; } }
+  }
+  /* BFS distances from the start; the unicorn takes the farthest cell */
+  var key=function(c2,r2){ return c2+','+r2; };
+  var prev={}, dist={}, q=[startCell];
+  dist[key(startCell[0],startCell[1])]=0;
   while(q.length){
-    var cur=q.shift(), cx=cur[0], cy=cur[1];
-    if(cx===cols-1&&cy===rows-1) break;
-    var cell=cells[cx][cy], nb=[];
-    if(!cell.n) nb.push([cx,cy-1]); if(!cell.s) nb.push([cx,cy+1]);
-    if(!cell.w) nb.push([cx-1,cy]); if(!cell.e) nb.push([cx+1,cy]);
-    for(var i=0;i<nb.length;i++){ var key=nb[i][0]+','+nb[i][1];
-      if(!seen[key]){ seen[key]=1; prev[key]=cur; q.push(nb[i]); } }
+    var cur2=q.shift(), cx2=cur2[0], cy2=cur2[1], cell=cells[cx2][cy2], nb=[];
+    if(!cell.n) nb.push([cx2,cy2-1]); if(!cell.s) nb.push([cx2,cy2+1]);
+    if(!cell.w) nb.push([cx2-1,cy2]); if(!cell.e) nb.push([cx2+1,cy2]);
+    for(var i3=0;i3<nb.length;i3++){ var k2=key(nb[i3][0],nb[i3][1]);
+      if(dist[k2]===undefined){ dist[k2]=dist[key(cx2,cy2)]+1; prev[k2]=cur2; q.push(nb[i3]); } }
   }
-  var path=[], cur=[cols-1,rows-1];
-  while(cur){ path.push(cur); if(cur[0]===0&&cur[1]===0) break; cur=prev[cur[0]+','+cur[1]]; }
-  return path.reverse();
+  var far=-1; goalCell=startCell;
+  for(c=0;c<cols;c++) for(r=0;r<rows;r++){ var kk=key(c,r);
+    if(mask[c][r]&&dist[kk]!==undefined&&dist[kk]>far){ far=dist[kk]; goalCell=[c,r]; } }
+  solution=[]; var cur3=goalCell;
+  while(cur3){ solution.push(cur3);
+    if(cur3[0]===startCell[0]&&cur3[1]===startCell[1]) break;
+    cur3=prev[key(cur3[0],cur3[1])]; }
+  solution.reverse();
+  seed = (Math.random()*1e9)|0;
+  fairy.x=startCell[0]+0.5; fairy.y=startCell[1]+0.5; won=false; sparkles.length=0;
 }
 
 /* ---------- wall segments (grid units) ---------- */
 function wallSegments(){
-  var segs=[], c, r, cell;
-  for(c=0;c<cols;c++) for(r=0;r<rows;r++){ cell=cells[c][r];
-    if(cell.n) segs.push([c,r,c+1,r]);
-    if(cell.w) segs.push([c,r,c,r+1]);
-    if(r===rows-1&&cell.s) segs.push([c,r+1,c+1,r+1]);
-    if(c===cols-1&&cell.e) segs.push([c+1,r,c+1,r+1]);
+  var segs=[], seenSeg={}, c, r, cell;
+  function push(a,b,cc,d){ var k=a+','+b+'-'+cc+','+d;
+    if(seenSeg[k]) return; seenSeg[k]=1; segs.push([a,b,cc,d]); }
+  for(c=0;c<cols;c++) for(r=0;r<rows;r++){ if(!mask[c][r]) continue; cell=cells[c][r];
+    if(cell.n) push(c,r,c+1,r);
+    if(cell.s) push(c,r+1,c+1,r+1);
+    if(cell.w) push(c,r,c,r+1);
+    if(cell.e) push(c+1,r,c+1,r+1);
   }
   return segs;
 }
@@ -223,29 +309,29 @@ function renderMaze(){
   mazeCanvas.width=mazeW*DPR; mazeCanvas.height=mazeH*DPR;
   var m=mazeCanvas.getContext('2d'); m.scale(DPR,DPR);
   var rnd=mulberry32(seed);
-  /* floor */
-  m.fillStyle='#fff8ec'; m.fillRect(0,0,mazeW,mazeH);
-  m.fillStyle='rgba(255,183,213,0.10)';
-  for(var c=0;c<cols;c++) for(var r=0;r<rows;r++) if((c+r)%2===0) m.fillRect(c*cellPx,r*cellPx,cellPx,cellPx);
+  /* floor: only the cells inside the shape */
+  for(var c=0;c<cols;c++) for(var r=0;r<rows;r++){ if(!mask[c][r]) continue;
+    m.fillStyle=pal.floor; m.fillRect(c*cellPx,r*cellPx,cellPx,cellPx);
+    if((c+r)%2===0){ m.fillStyle=pal.alt; m.fillRect(c*cellPx,r*cellPx,cellPx,cellPx); } }
   /* start pad */
-  pad(m, 0.5*cellPx, 0.5*cellPx, '#ffb3d9');
+  pad(m, (startCell[0]+0.5)*cellPx, (startCell[1]+0.5)*cellPx, pal.startPad);
   /* goal pad */
-  pad(m, (cols-0.5)*cellPx, (rows-0.5)*cellPx, '#b3e5ff');
+  pad(m, (goalCell[0]+0.5)*cellPx, (goalCell[1]+0.5)*cellPx, pal.goalPad);
   /* hedges */
   m.lineCap='round';
   for(var i=0;i<segs.length;i++){ var s=segs[i];
     var x1=s[0]*cellPx, y1=s[1]*cellPx, x2=s[2]*cellPx, y2=s[3]*cellPx;
-    m.strokeStyle='#3e9c4f'; m.lineWidth=cellPx*0.30;
+    m.strokeStyle=pal.hedge[0]; m.lineWidth=cellPx*0.30;
     m.beginPath(); m.moveTo(x1,y1); m.lineTo(x2,y2); m.stroke();
-    m.strokeStyle='#5cb85c'; m.lineWidth=cellPx*0.19;
+    m.strokeStyle=pal.hedge[1]; m.lineWidth=cellPx*0.19;
     m.beginPath(); m.moveTo(x1,y1); m.lineTo(x2,y2); m.stroke();
-    m.strokeStyle='#7ed37e'; m.lineWidth=cellPx*0.07;
+    m.strokeStyle=pal.hedge[2]; m.lineWidth=cellPx*0.07;
     m.beginPath(); m.moveTo(x1,y1); m.lineTo(x2,y2); m.stroke();
     /* flowers on the hedge */
     if(rnd()<0.55){
       var n=1+((rnd()*2)|0);
       for(var f=0;f<n;f++){ var t=0.2+rnd()*0.6;
-        m.fillStyle=['#ff8fb2','#ffd54f','#ffffff','#e1a7ff'][(rnd()*4)|0];
+        m.fillStyle=pal.flowers[(rnd()*pal.flowers.length)|0];
         m.beginPath(); m.arc(x1+(x2-x1)*t, y1+(y2-y1)*t, Math.max(2,cellPx*0.05), 0, 7); m.fill(); }
     }
   }
@@ -298,7 +384,7 @@ function loop(ts){
       if(Math.random()<0.75) addSparkle(fairy.x, fairy.y+0.15, false);
       if(ts-lastTwinkle>320){ lastTwinkle=ts; twinkle(); }
       /* reached the unicorn? */
-      var gx=cols-0.5, gy=rows-0.5, ux=fairy.x-gx, uy=fairy.y-gy;
+      var gx=goalCell[0]+0.5, gy=goalCell[1]+0.5, ux=fairy.x-gx, uy=fairy.y-gy;
       if(Math.sqrt(ux*ux+uy*uy)<0.55) win();
     }
   }
@@ -326,10 +412,10 @@ function loop(ts){
   var bobU=Math.sin(ts/420)*cellPx*0.03;
   if(unicornImg.complete && unicornImg.naturalWidth){
     var uw=cellPx*1.18, uh=uw*unicornImg.naturalHeight/unicornImg.naturalWidth;
-    ctx.drawImage(unicornImg, ox+(cols-0.5)*cellPx-uw/2, oy+(rows-0.5)*cellPx-uh/2+bobU, uw, uh);
+    ctx.drawImage(unicornImg, ox+(goalCell[0]+0.5)*cellPx-uw/2, oy+(goalCell[1]+0.5)*cellPx-uh/2+bobU, uw, uh);
   } else {
     ctx.font=cellPx+'px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText('🦄', ox+(cols-0.5)*cellPx, oy+(rows-0.5)*cellPx+bobU);
+    ctx.fillText('🦄', ox+(goalCell[0]+0.5)*cellPx, oy+(goalCell[1]+0.5)*cellPx+bobU);
   }
 
   /* sparkles */
@@ -408,7 +494,17 @@ canvas.addEventListener('pointercancel', endDrag);
 canvas.addEventListener('contextmenu', function(e){ e.preventDefault(); });
 
 /* ---------- controls ---------- */
-function newMaze(){ genMaze(); segs=wallSegments(); layout(); }
+function newMaze(){ genMaze(); segs=wallSegments(); layout(); flashName(); }
+var nameTimer=null;
+function flashName(){
+  if(!combo) return;
+  var el=$('hint-line');
+  el.textContent=combo.name+' — find the unicorn! 🦄';
+  if(nameTimer) clearTimeout(nameTimer);
+  nameTimer=setTimeout(function(){
+    el.textContent='Drag your finger to fly Emi through the maze to her unicorn! 🦄';
+  }, 3000);
+}
 $('newBtn').addEventListener('click', function(){ pop(); newMaze(); });
 $('hintBtn').addEventListener('click', function(){ pop(); hintUntil=performance.now()+2600; });
 $('soundBtn').addEventListener('click', function(){

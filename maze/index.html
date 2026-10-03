@@ -300,7 +300,9 @@ function collides(x,y){
 function layout(){
   var w=stage.clientWidth, h=stage.clientHeight;
   canvas.width=w*DPR; canvas.height=h*DPR;
-  cellPx=Math.max(24, Math.floor(Math.min(w/cols, h/rows)));
+  /* fit the maze PLUS the hedge thickness that spills past the outer
+     boundary (and sprite overhang), so shape tips are never clipped */
+  cellPx=Math.max(24, Math.floor(Math.min(w/(cols+0.8), h/(rows+0.8))));
   mazeW=cellPx*cols; mazeH=cellPx*rows;
   ox=Math.round((w-mazeW)/2); oy=Math.round((h-mazeH)/2);
   renderMaze();

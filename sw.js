@@ -1,15 +1,20 @@
-/* Service worker for Emi's games: caches both games + icons so they
+/* Service worker for Emi's games: caches all the games + icons so they
    run offline (e.g. on a plane) after the first visit with internet.
    Strategy: stale-while-revalidate — serve the cached copy instantly,
    refresh it in the background, fall back to network when uncached. */
-var CACHE = 'kid-games-v2';
+var CACHE = 'kid-games-v3';
 var CORE = [
   '/kid-games/',
   '/kid-games/memory/',
   '/kid-games/dressup/',
+  '/kid-games/maze/',
+  '/kid-games/maze/assets/fairy.png',
+  '/kid-games/maze/assets/unicorn.png',
+  '/kid-games/maze/assets/reward.jpg',
   '/kid-games/icon-bubble.png',
   '/kid-games/icon-match.png',
-  '/kid-games/icon-dressup.png'
+  '/kid-games/icon-dressup.png',
+  '/kid-games/icon-maze.png'
 ];
 
 self.addEventListener('install', function (e) {

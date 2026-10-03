@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f9a8d4">
+<link rel="apple-touch-icon" href="/kid-games/icon-maze.png">
+<title>Emi's Fairy Maze 🧚</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { height:100%; overscroll-behavior:none; }
+  body {
+    font-family: ui-rounded, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(180deg, #aee3ff 0%, #d8f3ff 34%, #ffe9f6 72%, #e7ffd9 100%);
+    display:flex; flex-direction:column; height:100dvh; overflow:hidden;
+    user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
+    color:#5b2a86;
+  }
+  header {
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    padding: max(10px, env(safe-area-inset-top)) 12px 8px;
+  }
+  h1 { font-size: clamp(20px, 4.5vw, 30px); font-weight:900; letter-spacing:.2px;
+       color:#7c3aed; text-shadow:0 2px 0 #fff; margin-right:auto; }
+  .btn {
+    border:none; cursor:pointer; font-family:inherit; font-weight:800;
+    font-size: clamp(15px, 3.4vw, 19px); color:#5b2a86;
+    background:#fff; border-radius:999px; padding:10px 16px; min-height:48px;
+    box-shadow:0 3px 0 rgba(124,58,237,.35), 0 6px 14px rgba(91,42,134,.12);
+  }
+  .btn:active { transform: translateY(2px); box-shadow:0 1px 0 rgba(124,58,237,.35); }
+  .levels { display:flex; gap:6px; }
+  .lvl { width:48px; height:48px; border-radius:50%; border:none; cursor:pointer;
+    font-family:inherit; font-size:20px; font-weight:900; color:#7c3aed; background:#fff;
+    box-shadow:0 3px 0 rgba(124,58,237,.35); }
+  .lvl.on { background:#7c3aed; color:#fff; }
+  #hint-line { text-align:center; font-size: clamp(14px, 3vw, 18px); font-weight:700;
+    color:#9d5cff; padding:0 10px 6px; }
+  #stage { flex:1; position:relative; min-height:0; }
+  canvas#game { position:absolute; inset:0; width:100%; height:100%; touch-action:none; display:block; }
+
+  /* ---------- win / reward overlay (same pattern as the other games) ---------- */
+  #reward {
+    position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center;
+    background: rgba(46, 16, 84, .55); backdrop-filter: blur(3px); padding:18px;
+  }
+  #reward.hidden { display:none; }
+  .reward-card { text-align:center; animation: pop-in .35s cubic-bezier(.2,1.6,.4,1); max-height:100%; }
+  @keyframes pop-in { from { transform:scale(.6); opacity:0; } to { transform:scale(1); opacity:1; } }
+  .reward-card img {
+    max-width:min(92vw, 480px); max-height:62dvh; border-radius:24px;
+    border:6px solid #fff; box-shadow:0 18px 50px rgba(0,0,0,.45); object-fit:cover;
+  }
+  .reward-text { font-size: clamp(26px, 6vw, 40px); font-weight:900; color:#fff; margin-top:14px;
+    text-shadow:0 3px 10px rgba(0,0,0,.4); }
+  .reward-sub { font-size: clamp(20px, 4.6vw, 28px); font-weight:800; color:#ffd7ef; margin-top:4px;
+    text-shadow:0 2px 8px rgba(0,0,0,.4); }
+  .reward-tap { font-size: clamp(15px, 3.6vw, 20px); color:#fff; margin-top:10px; opacity:.92; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🧚 Fairy Maze</h1>
+  <div class="levels" id="levels">
+    <button class="lvl" data-lvl="1">1</button>
+    <button class="lvl" data-lvl="2">2</button>
+    <button class="lvl" data-lvl="3">3</button>
+  </div>
+  <button class="btn" id="hintBtn">💡 Hint</button>
+  <button class="btn" id="newBtn">🔀 New Maze</button>
+  <button class="btn" id="soundBtn">🔊</button>
+</header>
+<div id="hint-line">Drag your finger to fly Emi through the maze to her unicorn! 🦄</div>
+<div id="stage"><canvas id="game"></canvas></div>
+
+<div id="reward" class="hidden">
+  <div class="reward-card">
+    <img id="rewardImg" src="assets/reward.jpg" alt="Emi the fairy hugging her unicorn">
+    <div class="reward-text">You found your unicorn! 🦄</div>
+    <div class="reward-sub">Good Job Emi! 💕 Dada</div>
+    <div class="reward-tap">tap for a new maze 💖</div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+function $(id){ return document.getElementById(id); }
+
+/* ---------- sound (same synth pattern as the other games) ---------- */
+var AC = null;
+function ac(){ if(!AC){ try{ AC = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return null; } } if(AC && AC.state==='suspended') AC.resume(); return AC; }
+function tone(f0,f1,dur,type,vol,when){
+  if(!soundOn) return;
+  var a=ac(); if(!a) return;
+  var t=a.currentTime+(when||0), o=a.createOscillator(), g=a.createGain();
+  o.type=type||'sine'; o.frequency.setValueAtTime(f0,t);
+  o.frequency.exponentialRampToValueAtTime(Math.max(f1,1),t+dur);
+  g.gain.setValueAtTime(vol||0.15,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+dur+0.02);
+}
+function pop(){ tone(520,940,0.1,'sine',0.16); }
+function fanfare(){ var n=[523,659,784,1047,784,1047,1319]; for(var i=0;i<n.length;i++) tone(n[i],n[i],0.24,'triangle',0.14,i*0.11); }
+var TWINKLE=[1047,1175,1319,1568,1760];
+function twinkle(){ tone(TWINKLE[(Math.random()*TWINKLE.length)|0],0,0.18,'triangle',0.045); }
+
+/* ---------- state ---------- */
+var LEVELS = { 1:{cols:5, rows:7,  loops:0.20},
+               2:{cols:7, rows:10, loops:0.08},
+               3:{cols:9, rows:13, loops:0.0} };
+var level = parseInt(localStorage.getItem('fairyMazeLevel')||'1',10);
+if(!LEVELS[level]) level = 1;
+var soundOn = localStorage.getItem('fairyMazeSound') !== 'off';
+
+var stage = $('stage'), canvas = $('game'), ctx = canvas.getContext('2d');
+var DPR = Math.min(window.devicePixelRatio||1, 2);
+
+/* maze model: cells[c][r] = {n,e,s,w} walls, all coords below in GRID units */
+var cols=0, rows=0, cells=null, solution=[], seed=1;
+var fairy = { x:0.5, y:0.5 };            /* grid units */
+var FAIRY_R = 0.21, WALL_HALF = 0.15;    /* grid units */
+var dragging=false, pointer=null, won=false;
+var sparkles=[], bursts=[];
+var hintUntil=0, lastTwinkle=0, tNow=0;
+
+/* layout (pixels) */
+var cellPx=40, ox=0, oy=0, mazeW=0, mazeH=0;
+var mazeCanvas = document.createElement('canvas');
+
+var fairyImg = new Image(); fairyImg.src='assets/fairy.png';
+var unicornImg = new Image(); unicornImg.src='assets/unicorn.png';
+
+/* ---------- seeded rng for wall flowers ---------- */
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; var t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+
+/* ---------- maze generation: recursive backtracker + a few loops ---------- */
+function genMaze(){
+  var L = LEVELS[level]; cols=L.cols; rows=L.rows;
+  cells=[]; var c,r;
+  for(c=0;c<cols;c++){ cells.push([]); for(r=0;r<rows;r++) cells[c].push({n:1,e:1,s:1,w:1,seen:0}); }
+  var stack=[[0,0]]; cells[0][0].seen=1;
+  var DIRS=[[0,-1,'n','s'],[1,0,'e','w'],[0,1,'s','n'],[-1,0,'w','e']];
+  while(stack.length){
+    var cur=stack[stack.length-1], cx=cur[0], cy=cur[1], opts=[];
+    for(var i=0;i<4;i++){ var nx=cx+DIRS[i][0], ny=cy+DIRS[i][1];
+      if(nx>=0&&ny>=0&&nx<cols&&ny<rows&&!cells[nx][ny].seen) opts.push(DIRS[i]); }
+    if(!opts.length){ stack.pop(); continue; }
+    var d=opts[(Math.random()*opts.length)|0], mx=cx+d[0], my=cy+d[1];
+    cells[cx][cy][d[2]]=0; cells[mx][my][d[3]]=0; cells[mx][my].seen=1;
+    stack.push([mx,my]);
+  }
+  /* knock down a few extra interior walls to make loops (gentler for little kids) */
+  var extra = Math.floor(cols*rows*L.loops);
+  for(var k=0;k<extra;k++){
+    var x=1+((Math.random()*(cols-2))|0), y=1+((Math.random()*(rows-2))|0);
+    if(Math.random()<0.5) { cells[x][y].e=0; cells[x+1][y].w=0; }
+    else { cells[x][y].s=0; cells[x][y+1].n=0; }
+  }
+  /* solution path via BFS from start to goal */
+  solution = solve();
+  seed = (Math.random()*1e9)|0;
+  fairy.x=0.5; fairy.y=0.5; won=false; sparkles.length=0;
+}
+function solve(){
+  var prev={}, q=[[0,0]], seen={'0,0':1};
+  while(q.length){
+    var cur=q.shift(), cx=cur[0], cy=cur[1];
+    if(cx===cols-1&&cy===rows-1) break;
+    var cell=cells[cx][cy], nb=[];
+    if(!cell.n) nb.push([cx,cy-1]); if(!cell.s) nb.push([cx,cy+1]);
+    if(!cell.w) nb.push([cx-1,cy]); if(!cell.e) nb.push([cx+1,cy]);
+    for(var i=0;i<nb.length;i++){ var key=nb[i][0]+','+nb[i][1];
+      if(!seen[key]){ seen[key]=1; prev[key]=cur; q.push(nb[i]); } }
+  }
+  var path=[], cur=[cols-1,rows-1];
+  while(cur){ path.push(cur); if(cur[0]===0&&cur[1]===0) break; cur=prev[cur[0]+','+cur[1]]; }
+  return path.reverse();
+}
+
+/* ---------- wall segments (grid units) ---------- */
+function wallSegments(){
+  var segs=[], c, r, cell;
+  for(c=0;c<cols;c++) for(r=0;r<rows;r++){ cell=cells[c][r];
+    if(cell.n) segs.push([c,r,c+1,r]);
+    if(cell.w) segs.push([c,r,c,r+1]);
+    if(r===rows-1&&cell.s) segs.push([c,r+1,c+1,r+1]);
+    if(c===cols-1&&cell.e) segs.push([c+1,r,c+1,r+1]);
+  }
+  return segs;
+}
+var segs=[];
+function distToSeg(px,py,s){
+  var dx=s[2]-s[0], dy=s[3]-s[1], L2=dx*dx+dy*dy;
+  var t = L2? ((px-s[0])*dx+(py-s[1])*dy)/L2 : 0;
+  t=Math.max(0,Math.min(1,t));
+  var ex=s[0]+t*dx-px, ey=s[1]+t*dy-py;
+  return Math.sqrt(ex*ex+ey*ey);
+}
+function collides(x,y){
+  /* only segments near the point can matter */
+  for(var i=0;i<segs.length;i++){
+    var s=segs[i];
+    if(Math.max(s[0],s[2])<x-0.5||Math.min(s[0],s[2])>x+0.5) continue;
+    if(Math.max(s[1],s[3])<y-0.5||Math.min(s[1],s[3])>y+0.5) continue;
+    if(distToSeg(x,y,s) < FAIRY_R+WALL_HALF) return true;
+  }
+  return false;
+}
+
+/* ---------- layout + maze pre-render ---------- */
+function layout(){
+  var w=stage.clientWidth, h=stage.clientHeight;
+  canvas.width=w*DPR; canvas.height=h*DPR;
+  cellPx=Math.max(24, Math.floor(Math.min(w/cols, h/rows)));
+  mazeW=cellPx*cols; mazeH=cellPx*rows;
+  ox=Math.round((w-mazeW)/2); oy=Math.round((h-mazeH)/2);
+  renderMaze();
+}
+function renderMaze(){
+  mazeCanvas.width=mazeW*DPR; mazeCanvas.height=mazeH*DPR;
+  var m=mazeCanvas.getContext('2d'); m.scale(DPR,DPR);
+  var rnd=mulberry32(seed);
+  /* floor */
+  m.fillStyle='#fff8ec'; m.fillRect(0,0,mazeW,mazeH);
+  m.fillStyle='rgba(255,183,213,0.10)';
+  for(var c=0;c<cols;c++) for(var r=0;r<rows;r++) if((c+r)%2===0) m.fillRect(c*cellPx,r*cellPx,cellPx,cellPx);
+  /* start pad */
+  pad(m, 0.5*cellPx, 0.5*cellPx, '#ffb3d9');
+  /* goal pad */
+  pad(m, (cols-0.5)*cellPx, (rows-0.5)*cellPx, '#b3e5ff');
+  /* hedges */
+  m.lineCap='round';
+  for(var i=0;i<segs.length;i++){ var s=segs[i];
+    var x1=s[0]*cellPx, y1=s[1]*cellPx, x2=s[2]*cellPx, y2=s[3]*cellPx;
+    m.strokeStyle='#3e9c4f'; m.lineWidth=cellPx*0.30;
+    m.beginPath(); m.moveTo(x1,y1); m.lineTo(x2,y2); m.stroke();
+    m.strokeStyle='#5cb85c'; m.lineWidth=cellPx*0.19;
+    m.beginPath(); m.moveTo(x1,y1); m.lineTo(x2,y2); m.stroke();
+    m.strokeStyle='#7ed37e'; m.lineWidth=cellPx*0.07;
+    m.beginPath(); m.moveTo(x1,y1); m.lineTo(x2,y2); m.stroke();
+    /* flowers on the hedge */
+    if(rnd()<0.55){
+      var n=1+((rnd()*2)|0);
+      for(var f=0;f<n;f++){ var t=0.2+rnd()*0.6;
+        m.fillStyle=['#ff8fb2','#ffd54f','#ffffff','#e1a7ff'][(rnd()*4)|0];
+        m.beginPath(); m.arc(x1+(x2-x1)*t, y1+(y2-y1)*t, Math.max(2,cellPx*0.05), 0, 7); m.fill(); }
+    }
+  }
+}
+function pad(m,x,y,color){
+  var g=m.createRadialGradient(x,y,2,x,y,cellPx*0.62);
+  g.addColorStop(0,color); g.addColorStop(1,'rgba(255,255,255,0)');
+  m.fillStyle=g; m.beginPath(); m.arc(x,y,cellPx*0.62,0,7); m.fill();
+}
+
+/* ---------- particles ---------- */
+function addSparkle(x,y,burst){
+  sparkles.push({ x:x, y:y,
+    vx:(Math.random()-0.5)*(burst?2.4:0.5), vy:(Math.random()-0.7)*(burst?2.4:0.5),
+    life:0, max: burst? 900+Math.random()*600 : 500+Math.random()*400,
+    size:(burst?0.10:0.07)+Math.random()*0.06,
+    hue:[45,320,190,280][(Math.random()*4)|0] });
+  if(sparkles.length>240) sparkles.splice(0, sparkles.length-240);
+}
+function drawStar(x,y,r,rot,color,alpha){
+  ctx.save(); ctx.translate(x,y); ctx.rotate(rot); ctx.globalAlpha=alpha; ctx.fillStyle=color;
+  ctx.beginPath();
+  for(var i=0;i<8;i++){ var ang=i*Math.PI/4, rad=i%2? r*0.38 : r;
+    ctx.lineTo(Math.cos(ang)*rad, Math.sin(ang)*rad); }
+  ctx.closePath(); ctx.fill(); ctx.restore();
+}
+
+/* ---------- main loop ---------- */
+var lastT=0;
+function loop(ts){
+  requestAnimationFrame(loop);
+  var dt=Math.min(50, ts-(lastT||ts)); lastT=ts; tNow=ts;
+
+  /* move the fairy toward the finger */
+  if(dragging && pointer && !won){
+    var dx=pointer.x-fairy.x, dy=pointer.y-fairy.y;
+    var dist=Math.sqrt(dx*dx+dy*dy);
+    if(dist>0.02){
+      var speed=3.4*(dt/1000), steps=Math.max(1, Math.ceil(dist/(FAIRY_R*0.4)));
+      for(var i=0;i<steps;i++){
+        var ddx=pointer.x-fairy.x, ddy=pointer.y-fairy.y, dd=Math.sqrt(ddx*ddx+ddy*ddy);
+        if(dd<0.01) break;
+        var step=Math.min(speed/steps, dd);
+        var nx=fairy.x+ddx/dd*step, ny=fairy.y+ddy/dd*step;
+        if(!collides(nx,ny)){ fairy.x=nx; fairy.y=ny; }
+        else if(!collides(nx,fairy.y)){ fairy.x=nx; }
+        else if(!collides(fairy.x,ny)){ fairy.y=ny; }
+        else break;
+      }
+      if(Math.random()<0.75) addSparkle(fairy.x, fairy.y+0.15, false);
+      if(ts-lastTwinkle>320){ lastTwinkle=ts; twinkle(); }
+      /* reached the unicorn? */
+      var gx=cols-0.5, gy=rows-0.5, ux=fairy.x-gx, uy=fairy.y-gy;
+      if(Math.sqrt(ux*ux+uy*uy)<0.55) win();
+    }
+  }
+
+  /* draw */
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.drawImage(mazeCanvas, ox, oy, mazeW, mazeH);
+
+  /* hint path */
+  if(ts<hintUntil && solution.length){
+    ctx.save();
+    ctx.globalAlpha=Math.max(0, Math.min(0.85, (hintUntil-ts)/900));
+    ctx.strokeStyle='#ffcf3f'; ctx.lineWidth=Math.max(3,cellPx*0.10);
+    ctx.lineCap='round'; ctx.lineJoin='round'; ctx.setLineDash([2, cellPx*0.32]);
+    ctx.beginPath();
+    for(var i=0;i<solution.length;i++){
+      var px=ox+(solution[i][0]+0.5)*cellPx, py=oy+(solution[i][1]+0.5)*cellPx;
+      if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+    }
+    ctx.stroke(); ctx.restore();
+  }
+
+  /* unicorn at the goal (gentle bob) */
+  var bobU=Math.sin(ts/420)*cellPx*0.03;
+  if(unicornImg.complete && unicornImg.naturalWidth){
+    var uw=cellPx*1.18, uh=uw*unicornImg.naturalHeight/unicornImg.naturalWidth;
+    ctx.drawImage(unicornImg, ox+(cols-0.5)*cellPx-uw/2, oy+(rows-0.5)*cellPx-uh/2+bobU, uw, uh);
+  } else {
+    ctx.font=cellPx+'px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('🦄', ox+(cols-0.5)*cellPx, oy+(rows-0.5)*cellPx+bobU);
+  }
+
+  /* sparkles */
+  for(var j=sparkles.length-1;j>=0;j--){ var p=sparkles[j];
+    p.life+=dt; if(p.life>=p.max){ sparkles.splice(j,1); continue; }
+    p.x+=p.vx*(dt/1000); p.y+=p.vy*(dt/1000);
+    var a=1-p.life/p.max;
+    drawStar(ox+p.x*cellPx, oy+p.y*cellPx, p.size*cellPx, p.life/300, 'hsl('+p.hue+',95%,72%)', a);
+  }
+
+  /* fairy (flutter + bob + lean toward motion) */
+  var fx=ox+fairy.x*cellPx, fy=oy+fairy.y*cellPx + Math.sin(ts/260)*cellPx*0.045;
+  ctx.save();
+  ctx.fillStyle='rgba(90,40,140,0.18)';
+  ctx.beginPath(); ctx.ellipse(fx, oy+fairy.y*cellPx+cellPx*0.34, cellPx*0.26, cellPx*0.09, 0, 0, 7); ctx.fill();
+  ctx.restore();
+  if(fairyImg.complete && fairyImg.naturalWidth){
+    var fw=cellPx*0.98, fh=fw*fairyImg.naturalHeight/fairyImg.naturalWidth;
+    var flutter=1+Math.sin(ts/90)*0.012;
+    ctx.save(); ctx.translate(fx,fy); ctx.scale(1,flutter);
+    ctx.drawImage(fairyImg, -fw/2, -fh/2, fw, fh);
+    ctx.restore();
+  } else {
+    ctx.font=cellPx*0.9+'px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('🧚', fx, fy);
+  }
+}
+
+/* ---------- win ---------- */
+var confettiCv=null;
+function launchConfetti(){
+  var c=document.createElement('canvas');
+  c.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:60';
+  c.width=innerWidth; c.height=innerHeight; document.body.appendChild(c);
+  var x=c.getContext('2d'), P=[], cols2=['#ff5d8f','#ffb340','#5dc9ff','#8dff57','#c77dff'];
+  for(var i=0;i<110;i++) P.push({x:Math.random()*c.width, y:-20-Math.random()*c.height*0.4,
+    w:6+Math.random()*7, h:8+Math.random()*10, vy:2.2+Math.random()*2.6, ph:Math.random()*7, c:cols2[i%5]});
+  var t0=performance.now();
+  (function tick(now){
+    var el=(now-t0)/1000;
+    x.clearRect(0,0,c.width,c.height);
+    for(var i=0;i<P.length;i++){ var p=P[i];
+      p.y+=p.vy; p.ph+=0.08;
+      x.save(); x.translate(p.x+Math.sin(p.ph)*20, p.y); x.rotate(p.ph);
+      x.fillStyle=p.c; x.fillRect(-p.w/2,-p.h/2,p.w,p.h); x.restore();
+    }
+    if(el<3.2) requestAnimationFrame(tick); else c.remove();
+  })(t0);
+}
+function win(){
+  won=true; dragging=false;
+  for(var i=0;i<40;i++) addSparkle(fairy.x, fairy.y, true);
+  fanfare(); launchConfetti();
+  setTimeout(function(){ $('reward').classList.remove('hidden'); }, 650);
+}
+$('reward').addEventListener('pointerdown', function(e){
+  $('reward').classList.add('hidden'); e.stopPropagation(); pop(); newMaze();
+});
+
+/* ---------- pointer: the finger draws the path, the fairy follows ---------- */
+function toGrid(ev){
+  var r=canvas.getBoundingClientRect();
+  return { x:(ev.clientX-r.left-ox)/cellPx, y:(ev.clientY-r.top-oy)/cellPx };
+}
+canvas.addEventListener('pointerdown', function(ev){
+  ev.preventDefault(); ac();
+  canvas.setPointerCapture(ev.pointerId);
+  dragging=true; pointer=toGrid(ev);
+});
+canvas.addEventListener('pointermove', function(ev){
+  if(dragging) pointer=toGrid(ev);
+});
+function endDrag(){ dragging=false; pointer=null; }
+canvas.addEventListener('pointerup', endDrag);
+canvas.addEventListener('pointercancel', endDrag);
+canvas.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+
+/* ---------- controls ---------- */
+function newMaze(){ genMaze(); segs=wallSegments(); layout(); }
+$('newBtn').addEventListener('click', function(){ pop(); newMaze(); });
+$('hintBtn').addEventListener('click', function(){ pop(); hintUntil=performance.now()+2600; });
+$('soundBtn').addEventListener('click', function(){
+  soundOn=!soundOn; localStorage.setItem('fairyMazeSound', soundOn?'on':'off');
+  $('soundBtn').textContent=soundOn?'🔊':'🔇'; if(soundOn) pop();
+});
+var lvlBtns=document.querySelectorAll('.lvl');
+function paintLevels(){ for(var i=0;i<lvlBtns.length;i++)
+  lvlBtns[i].classList.toggle('on', parseInt(lvlBtns[i].dataset.lvl,10)===level); }
+for(var i=0;i<lvlBtns.length;i++) lvlBtns[i].addEventListener('click', function(){
+  level=parseInt(this.dataset.lvl,10); localStorage.setItem('fairyMazeLevel', String(level));
+  paintLevels(); pop(); newMaze();
+});
+
+/* ---------- init ---------- */
+$('soundBtn').textContent=soundOn?'🔊':'🔇';
+paintLevels();
+newMaze();
+window.addEventListener('resize', layout);
+fairyImg.onload=function(){};
+requestAnimationFrame(loop);
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/kid-games/sw.js', { scope: '/kid-games/' });
+  });
+}
+})();
+</script>
+</body>
+</html>

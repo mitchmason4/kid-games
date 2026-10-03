@@ -359,35 +359,40 @@ function drawStar(x,y,r,rot,color,alpha){
   ctx.closePath(); ctx.fill(); ctx.restore();
 }
 
+/* move the fairy toward the finger for dt milliseconds of travel.
+   Called every frame while dragging AND directly on pointermove,
+   so even a quick flick registers. */
+function stepFairy(dt){
+  if(!pointer || won) return;
+  var dx=pointer.x-fairy.x, dy=pointer.y-fairy.y;
+  var dist=Math.sqrt(dx*dx+dy*dy);
+  if(dist<=0.02) return;
+  var speed=3.4*(dt/1000), steps=Math.max(1, Math.ceil(dist/(FAIRY_R*0.4)));
+  for(var i=0;i<steps;i++){
+    var ddx=pointer.x-fairy.x, ddy=pointer.y-fairy.y, dd=Math.sqrt(ddx*ddx+ddy*ddy);
+    if(dd<0.01) break;
+    var step=Math.min(speed/steps, dd);
+    var nx=fairy.x+ddx/dd*step, ny=fairy.y+ddy/dd*step;
+    if(!collides(nx,ny)){ fairy.x=nx; fairy.y=ny; }
+    else if(!collides(nx,fairy.y)){ fairy.x=nx; }
+    else if(!collides(fairy.x,ny)){ fairy.y=ny; }
+    else break;
+  }
+  if(Math.random()<0.75) addSparkle(fairy.x, fairy.y+0.15, false);
+  var now=performance.now();
+  if(now-lastTwinkle>320){ lastTwinkle=now; twinkle(); }
+  /* reached the unicorn? */
+  var gx=goalCell[0]+0.5, gy=goalCell[1]+0.5, ux=fairy.x-gx, uy=fairy.y-gy;
+  if(Math.sqrt(ux*ux+uy*uy)<0.55) win();
+}
+
 /* ---------- main loop ---------- */
 var lastT=0;
 function loop(ts){
   requestAnimationFrame(loop);
   var dt=Math.min(50, ts-(lastT||ts)); lastT=ts; tNow=ts;
 
-  /* move the fairy toward the finger */
-  if(dragging && pointer && !won){
-    var dx=pointer.x-fairy.x, dy=pointer.y-fairy.y;
-    var dist=Math.sqrt(dx*dx+dy*dy);
-    if(dist>0.02){
-      var speed=3.4*(dt/1000), steps=Math.max(1, Math.ceil(dist/(FAIRY_R*0.4)));
-      for(var i=0;i<steps;i++){
-        var ddx=pointer.x-fairy.x, ddy=pointer.y-fairy.y, dd=Math.sqrt(ddx*ddx+ddy*ddy);
-        if(dd<0.01) break;
-        var step=Math.min(speed/steps, dd);
-        var nx=fairy.x+ddx/dd*step, ny=fairy.y+ddy/dd*step;
-        if(!collides(nx,ny)){ fairy.x=nx; fairy.y=ny; }
-        else if(!collides(nx,fairy.y)){ fairy.x=nx; }
-        else if(!collides(fairy.x,ny)){ fairy.y=ny; }
-        else break;
-      }
-      if(Math.random()<0.75) addSparkle(fairy.x, fairy.y+0.15, false);
-      if(ts-lastTwinkle>320){ lastTwinkle=ts; twinkle(); }
-      /* reached the unicorn? */
-      var gx=goalCell[0]+0.5, gy=goalCell[1]+0.5, ux=fairy.x-gx, uy=fairy.y-gy;
-      if(Math.sqrt(ux*ux+uy*uy)<0.55) win();
-    }
-  }
+  if(dragging) stepFairy(dt);
 
   /* draw */
   ctx.setTransform(DPR,0,0,DPR,0,0);
@@ -469,7 +474,7 @@ function win(){
   won=true; dragging=false;
   for(var i=0;i<40;i++) addSparkle(fairy.x, fairy.y, true);
   fanfare(); launchConfetti();
-  setTimeout(function(){ $('reward').classList.remove('hidden'); }, 650);
+  setTimeout(function(){ $('reward').classList.remove('hidden'); launchConfetti(); }, 650);
 }
 $('reward').addEventListener('pointerdown', function(e){
   $('reward').classList.add('hidden'); e.stopPropagation(); pop(); newMaze();
@@ -486,7 +491,7 @@ canvas.addEventListener('pointerdown', function(ev){
   dragging=true; pointer=toGrid(ev);
 });
 canvas.addEventListener('pointermove', function(ev){
-  if(dragging) pointer=toGrid(ev);
+  if(dragging){ pointer=toGrid(ev); stepFairy(50); }
 });
 function endDrag(){ dragging=false; pointer=null; }
 canvas.addEventListener('pointerup', endDrag);
@@ -506,7 +511,7 @@ function flashName(){
   }, 3000);
 }
 $('newBtn').addEventListener('click', function(){ pop(); newMaze(); });
-$('hintBtn').addEventListener('click', function(){ pop(); hintUntil=performance.now()+2600; });
+$('hintBtn').addEventListener('click', function(){ pop(); hintUntil=performance.now()+4000; });
 $('soundBtn').addEventListener('click', function(){
   soundOn=!soundOn; localStorage.setItem('fairyMazeSound', soundOn?'on':'off');
   $('soundBtn').textContent=soundOn?'🔊':'🔇'; if(soundOn) pop();
@@ -524,6 +529,10 @@ $('soundBtn').textContent=soundOn?'🔊':'🔇';
 paintLevels();
 newMaze();
 window.addEventListener('resize', layout);
+/* re-fit whenever the stage changes size (e.g. the maze-name line wraps,
+   fonts load) so tall mazes never spill past the bottom edge */
+if (window.ResizeObserver) new ResizeObserver(function(){ layout(); }).observe(stage);
+window.addEventListener('load', layout);
 fairyImg.onload=function(){};
 requestAnimationFrame(loop);
 

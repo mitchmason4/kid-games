@@ -2,7 +2,7 @@
    run offline (e.g. on a plane) after the first visit with internet.
    Strategy: stale-while-revalidate — serve the cached copy instantly,
    refresh it in the background, fall back to network when uncached. */
-var CACHE = 'kid-games-v4';
+var CACHE = 'kid-games-v5';
 var CORE = [
   '/kid-games/',
   '/kid-games/memory/',
@@ -36,11 +36,27 @@ var CORE = [
   '/kid-games/animals/assets/snd/frog.mp3',
   '/kid-games/animals/assets/snd/chicken.mp3',
   '/kid-games/animals/assets/snd/monkey.mp3',
+  '/kid-games/royal-boxes/',
+  '/kid-games/royal-boxes/assets/img/royal-01.jpg',
+  '/kid-games/royal-boxes/assets/img/royal-02.jpg',
+  '/kid-games/royal-boxes/assets/img/royal-03.jpg',
+  '/kid-games/royal-boxes/assets/img/royal-04.jpg',
+  '/kid-games/royal-boxes/assets/img/royal-05.jpg',
+  '/kid-games/royal-boxes/assets/img/royal-06.jpg',
+  '/kid-games/royal-boxes/assets/img/royal-07.jpg',
+  '/kid-games/royal-boxes/assets/img/royal-08.jpg',
+  '/kid-games/royal-boxes/assets/img/royal-09.jpg',
+  '/kid-games/royal-boxes/assets/img/royal-10.jpg',
+  '/kid-games/royal-boxes/assets/img/royal-11.jpg',
+  '/kid-games/royal-boxes/assets/img/royal-12.jpg',
+  '/kid-games/royal-boxes/assets/img/queen.jpg',
+  '/kid-games/royal-boxes/assets/img/win.jpg',
   '/kid-games/icon-bubble.png',
   '/kid-games/icon-match.png',
   '/kid-games/icon-dressup.png',
   '/kid-games/icon-maze.png',
-  '/kid-games/icon-animals.png'
+  '/kid-games/icon-animals.png',
+  '/kid-games/icon-royal.png'
 ];
 
 self.addEventListener('install', function (e) {

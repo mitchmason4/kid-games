@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#c77dff">
+<link rel="apple-touch-icon" href="/kid-games/icon-royal.png">
+<title>Emi's Royal Boxes 👑</title>
+<!--
+  Emi's Royal Boxes — a fairytale Deal or No Deal for kids.
+  Pick YOUR box, open the other royals' rainbow boxes, and after every
+  round the Queen (on her throne, dragon by her side) offers you stars
+  to stop playing. Deal, or No Deal? Every ending wins stars. 💖
+  All pictures are AI-generated cartoon illustrations.
+-->
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { height:100%; overscroll-behavior:none; }
+  body {
+    font-family: ui-rounded, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(180deg, #ffe9f6 0%, #e7d6ff 45%, #cfe8ff 100%);
+    display:flex; flex-direction:column; height:100dvh; overflow:hidden;
+    user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
+    color:#5b2a86;
+  }
+  header {
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    padding: max(10px, env(safe-area-inset-top)) 12px 6px;
+  }
+  h1 { font-size: clamp(20px, 4.5vw, 30px); font-weight:900; letter-spacing:.2px;
+       color:#7c3aed; text-shadow:0 2px 0 #fff; margin-right:auto; }
+  .btn {
+    border:none; cursor:pointer; font-family:inherit; font-weight:800;
+    font-size: clamp(15px, 3.4vw, 19px); color:#5b2a86;
+    background:#fff; border-radius:999px; padding:10px 16px; min-height:48px;
+    box-shadow:0 3px 0 rgba(124,58,237,.35), 0 6px 14px rgba(91,42,134,.12);
+  }
+  .btn:active { transform: translateY(2px); box-shadow:0 1px 0 rgba(124,58,237,.35); }
+  #bestPill {
+    font-weight:900; font-size: clamp(14px, 3.2vw, 18px); color:#8a5a00;
+    background:#fff7d6; border-radius:999px; padding:10px 14px;
+    box-shadow:0 3px 0 rgba(200,150,0,.35);
+  }
+  #status { text-align:center; font-size: clamp(17px, 4vw, 23px); font-weight:800;
+    color:#7c3aed; padding:2px 12px 6px; min-height:1.4em; text-shadow:0 1px 0 #fff; }
+  #values { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; padding:0 10px 8px; }
+  .pill {
+    font-size: clamp(13px, 3vw, 17px); font-weight:900; color:#5b2a86;
+    background:rgba(255,255,255,.92); border-radius:999px; padding:6px 11px;
+    box-shadow:0 2px 0 rgba(124,58,237,.25); transition: opacity .3s, transform .3s;
+  }
+  .pill.out { opacity:.32; text-decoration:line-through; transform:scale(.94); }
+  #board { flex:1; min-height:0; overflow-y:auto; padding:0 10px max(12px, env(safe-area-inset-bottom)); }
+  #grid {
+    display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;
+    max-width:860px; margin:0 auto;
+  }
+  @media (min-width:640px) { #grid { grid-template-columns:repeat(4, 1fr); } }
+  .card {
+    position:relative; border-radius:20px; overflow:hidden; cursor:pointer;
+    background:#fff; border:5px solid var(--boxcolor, #ccc);
+    box-shadow:0 5px 0 rgba(91,42,134,.22), 0 8px 18px rgba(91,42,134,.14);
+    transition: transform .15s, opacity .3s, filter .3s;
+  }
+  .card:active { transform:scale(.96); }
+  .card img { display:block; width:100%; aspect-ratio:1/1; object-fit:cover; pointer-events:none; }
+  .card .num {
+    position:absolute; top:6px; left:6px; width:40px; height:40px; border-radius:50%;
+    background:#fff; color:#5b2a86; font-size:21px; font-weight:900;
+    display:flex; align-items:center; justify-content:center;
+    border:3px solid var(--boxcolor, #ccc); box-shadow:0 2px 6px rgba(0,0,0,.2);
+  }
+  .card .name {
+    text-align:center; font-size: clamp(13px, 3vw, 17px); font-weight:900;
+    color:#5b2a86; padding:7px 4px 9px; background:#fff; line-height:1.1;
+  }
+  .card .name small { display:block; font-size:.78em; font-weight:700; color:#9d5cff; }
+  .card.yours { border-color:#ffd23f; box-shadow:0 0 0 4px #ffd23f, 0 0 26px rgba(255,210,63,.9), 0 5px 0 rgba(91,42,134,.22); }
+  .card.yours::after {
+    content:"👑 YOUR BOX"; position:absolute; top:8px; right:6px;
+    background:#ffd23f; color:#6b4e00; font-size:12px; font-weight:900;
+    padding:4px 8px; border-radius:999px; box-shadow:0 2px 6px rgba(0,0,0,.2);
+  }
+  .card.opened { opacity:.55; filter:saturate(.4); cursor:default; }
+  .card.opened .reveal {
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; background:rgba(255,255,255,.45);
+    font-weight:900; color:#5b2a86; text-shadow:0 2px 0 #fff;
+  }
+  .card.opened .reveal .stars { font-size: clamp(22px, 6vw, 34px); }
+  .card.opened .reveal .lbl { font-size: clamp(12px, 2.8vw, 15px); }
+  .card.pulse { animation: pulse 1s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.04); } }
+  .card.shake { animation: shake .35s ease; }
+  @keyframes shake { 0%,100% { transform:translateX(0); } 25% { transform:translateX(-6px); } 75% { transform:translateX(6px); } }
+
+  /* ---------- reveal toast ---------- */
+  #toast {
+    position:fixed; left:50%; top:38%; transform:translate(-50%,-50%) scale(.6);
+    z-index:40; pointer-events:none; text-align:center; opacity:0;
+    transition: opacity .18s, transform .25s cubic-bezier(.2,1.6,.4,1);
+  }
+  #toast.show { opacity:1; transform:translate(-50%,-50%) scale(1); }
+  #toast .big { font-size: clamp(44px, 11vw, 84px); font-weight:900; color:#fff;
+    text-shadow:0 4px 0 rgba(91,42,134,.45), 0 8px 24px rgba(0,0,0,.35); }
+  #toast .sub { font-size: clamp(18px, 4.5vw, 26px); font-weight:800; color:#fff;
+    text-shadow:0 2px 8px rgba(0,0,0,.4); margin-top:2px; }
+
+  /* ---------- overlays (queen / final / win) ---------- */
+  .overlay {
+    position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center;
+    background: rgba(46, 16, 84, .6); backdrop-filter: blur(3px); padding:16px;
+  }
+  .overlay.hidden { display:none; }
+  .sheet {
+    background: linear-gradient(180deg, #fff 0%, #fff6e8 100%);
+    border-radius:28px; border:5px solid #ffd23f; text-align:center;
+    padding:18px 18px 20px; max-width:560px; width:100%; max-height:100%; overflow-y:auto;
+    box-shadow:0 20px 60px rgba(0,0,0,.45);
+    animation: pop-in .35s cubic-bezier(.2,1.6,.4,1);
+  }
+  @keyframes pop-in { from { transform:scale(.6); opacity:0; } to { transform:scale(1); opacity:1; } }
+  .sheet img.hero {
+    width:min(100%, 380px); aspect-ratio:1/1; object-fit:cover; border-radius:20px;
+    border:4px solid #fff; box-shadow:0 10px 30px rgba(0,0,0,.25);
+  }
+  .sheet h2 { font-size: clamp(24px, 5.5vw, 34px); font-weight:900; color:#7c3aed; margin-top:12px; }
+  .sheet p { font-size: clamp(17px, 4vw, 22px); font-weight:700; color:#5b2a86; margin-top:6px; }
+  .offer { font-size: clamp(46px, 11vw, 72px); font-weight:900; color:#e8a800;
+    text-shadow:0 3px 0 #fff, 0 6px 18px rgba(232,168,0,.35); margin:6px 0 2px; }
+  .bigbtns { display:flex; gap:12px; margin-top:16px; }
+  .bigbtns .btn { flex:1; font-size: clamp(20px, 5vw, 27px); padding:16px 8px; min-height:64px; }
+  #dealBtn { background:#7ed957; color:#1e4d00; box-shadow:0 5px 0 #4d9c2e, 0 8px 18px rgba(0,0,0,.2); }
+  #noDealBtn { background:#ff8fb2; color:#6b0030; box-shadow:0 5px 0 #d14f7c, 0 8px 18px rgba(0,0,0,.2); }
+  #playAgainBtn { background:#ffd23f; color:#6b4e00; box-shadow:0 5px 0 #d1a400, 0 8px 18px rgba(0,0,0,.2);
+    font-size: clamp(20px, 5vw, 27px); padding:16px 28px; min-height:64px; margin-top:16px; }
+  .reward-sub { font-size: clamp(20px, 4.6vw, 28px); font-weight:800; color:#d14f7c; margin-top:6px; }
+  .fineprint { font-size: clamp(14px, 3.4vw, 18px); font-weight:700; color:#9d5cff; margin-top:8px; }
+  .finalpair { display:flex; gap:12px; margin-top:14px; }
+  .finalcard { flex:1; border-radius:20px; overflow:hidden; cursor:pointer;
+    border:5px solid var(--boxcolor, #ccc); background:#fff;
+    box-shadow:0 5px 0 rgba(91,42,134,.22); transition: transform .15s; }
+  .finalcard:active { transform:scale(.96); }
+  .finalcard img { display:block; width:100%; aspect-ratio:1/1; object-fit:cover; pointer-events:none; }
+  .finalcard .fname { font-weight:900; font-size: clamp(15px, 3.6vw, 20px); padding:8px 4px 4px; }
+  .finalcard .fbtn { display:inline-block; font-weight:900; font-size: clamp(15px, 3.6vw, 19px);
+    background:#ffd23f; color:#6b4e00; border-radius:999px; padding:9px 16px; margin:6px 0 12px;
+    box-shadow:0 3px 0 #d1a400; }
+</style>
+</head>
+<body>
+<header>
+  <h1>👑 Royal Boxes</h1>
+  <div id="bestPill">⭐ Best: 0</div>
+  <button class="btn" id="newBtn">🔄 New Game</button>
+  <button class="btn" id="soundBtn">🔊</button>
+</header>
+<div id="status">Tap a box to pick YOUR lucky box! 👑</div>
+<div id="values"></div>
+<div id="board"><div id="grid"></div></div>
+
+<div id="toast"><div class="big"></div><div class="sub"></div></div>
+
+<div id="queenOv" class="overlay hidden">
+  <div class="sheet">
+    <img class="hero" src="assets/img/queen.jpg" alt="The Queen on her throne with her dragon">
+    <h2>👑 The Queen has an offer!</h2>
+    <p>“I will give you these stars<br>for your box, little royal…”</p>
+    <div class="offer" id="offerAmt">⭐ 0</div>
+    <p>Deal, or No Deal?</p>
+    <div class="bigbtns">
+      <button class="btn" id="dealBtn">🤝 DEAL!</button>
+      <button class="btn" id="noDealBtn">🙅 NO DEAL!</button>
+    </div>
+  </div>
+</div>
+
+<div id="finalOv" class="overlay hidden">
+  <div class="sheet">
+    <h2>✨ Last choice! ✨</h2>
+    <p>Keep YOUR box, or swap for the last box?</p>
+    <div class="finalpair" id="finalPair"></div>
+    <p class="fineprint">Tap the box you want to keep!</p>
+  </div>
+</div>
+
+<div id="winOv" class="overlay hidden">
+  <div class="sheet">
+    <img class="hero" src="assets/img/win.jpg" alt="Royal celebration with a treasure chest of stars">
+    <h2 id="winTitle">You won!</h2>
+    <div class="offer" id="winAmt">⭐ 0</div>
+    <div class="reward-sub">Good Job Emi! 💕 Dada</div>
+    <p class="fineprint" id="winNote"></p>
+    <button class="btn" id="playAgainBtn">🔄 Play Again!</button>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+function $(id){ return document.getElementById(id); }
+
+/* ---------- the royals: 12 rainbow boxes ---------- */
+var ROYALS = [
+  { name:"Princess Ruby",  colorName:"red",     color:"#ff3b5c", img:"royal-01.jpg" },
+  { name:"Prince Theo",    colorName:"orange",  color:"#ff8a3d", img:"royal-02.jpg" },
+  { name:"Princess Sunny", colorName:"yellow",  color:"#ffd23f", img:"royal-03.jpg" },
+  { name:"Prince Milo",    colorName:"lime",    color:"#7ed957", img:"royal-04.jpg" },
+  { name:"Princess Ivy",   colorName:"green",   color:"#2ecc71", img:"royal-05.jpg" },
+  { name:"Prince Kai",     colorName:"teal",    color:"#17bebb", img:"royal-06.jpg" },
+  { name:"Princess Skye",  colorName:"sky blue",color:"#4dabff", img:"royal-07.jpg" },
+  { name:"Prince Noah",    colorName:"blue",    color:"#5a6bff", img:"royal-08.jpg" },
+  { name:"Princess Wren",  colorName:"indigo",  color:"#6c5ce7", img:"royal-09.jpg" },
+  { name:"Prince Felix",   colorName:"purple",  color:"#a55eea", img:"royal-10.jpg" },
+  { name:"Princess Mia",   colorName:"magenta", color:"#e84393", img:"royal-11.jpg" },
+  { name:"Prince Rowan",   colorName:"pink",    color:"#ff7bac", img:"royal-12.jpg" }
+];
+var VALUES = [1, 5, 10, 25, 50, 100, 150, 250, 400, 600, 800, 1000];
+var ROUNDS = [3, 3, 2, 2];              /* boxes to open per round */
+var OFFER_FACTOR = [0.55, 0.65, 0.75, 0.85];
+
+/* preload pictures */
+ROYALS.forEach(function(r){ var im=new Image(); im.src='assets/img/'+r.img; });
+['queen.jpg','win.jpg'].forEach(function(f){ var im=new Image(); im.src='assets/img/'+f; });
+
+/* ---------- sound (same synth pattern as the other games) ---------- */
+var AC = null;
+var soundOn = localStorage.getItem('royalBoxesSound') !== 'off';
+function ac(){ if(!AC){ try{ AC = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return null; } } if(AC && AC.state==='suspended') AC.resume(); return AC; }
+function tone(f0,f1,dur,type,vol,when){
+  if(!soundOn) return;
+  var a=ac(); if(!a) return;
+  var t=a.currentTime+(when||0), o=a.createOscillator(), g=a.createGain();
+  o.type=type||'sine'; o.frequency.setValueAtTime(f0,t);
+  o.frequency.exponentialRampToValueAtTime(Math.max(f1,1),t+dur);
+  g.gain.setValueAtTime(vol||0.15,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+dur+0.02);
+}
+function pop(){ tone(520,940,0.1,'sine',0.16); }
+function chime(high){
+  if(high){ tone(784,784,0.16,'triangle',0.16); tone(1047,1047,0.2,'triangle',0.16,0.1); tone(1319,1319,0.3,'triangle',0.15,0.2); }
+  else { tone(659,659,0.14,'triangle',0.14); tone(880,880,0.22,'triangle',0.13,0.09); }
+}
+function trumpet(){ /* the Queen arrives! */
+  tone(392,392,0.14,'sawtooth',0.07); tone(523,523,0.14,'sawtooth',0.07,0.13);
+  tone(659,659,0.3,'sawtooth',0.08,0.26); tone(784,784,0.42,'sawtooth',0.08,0.52);
+}
+function fanfare(){ var n=[523,659,784,1047,784,1047,1319]; for(var i=0;i<n.length;i++) tone(n[i],n[i],0.24,'triangle',0.14,i*0.11); }
+
+/* ---------- state ---------- */
+var boxValues = [], opened = [], yourBox = -1;
+var phase = 'pick', roundIdx = 0, picksLeft = 0, locked = false;
+var best = parseInt(localStorage.getItem('royalBoxesBest')||'0', 10) || 0;
+
+var grid = $('grid'), statusEl = $('status'), valuesEl = $('values');
+var cards = [];
+
+function shuffle(a){
+  for (var i=a.length-1;i>0;i--){ var j=(Math.random()*(i+1))|0, t=a[i]; a[i]=a[j]; a[j]=t; }
+  return a;
+}
+
+function buildBoard(){
+  grid.innerHTML=''; cards=[];
+  ROYALS.forEach(function(r, i){
+    var card=document.createElement('div');
+    card.className='card pulse';
+    card.style.setProperty('--boxcolor', r.color);
+    card.innerHTML='<img src="assets/img/'+r.img+'" alt="'+r.name+' holding a '+r.colorName+' box">'+
+      '<div class="num">'+(i+1)+'</div>'+
+      '<div class="name">'+r.name+'<small>'+r.colorName+' box</small></div>';
+    card.addEventListener('click', function(){ onCard(i); });
+    grid.appendChild(card); cards.push(card);
+  });
+  /* value pills, smallest to biggest */
+  valuesEl.innerHTML='';
+  VALUES.slice().sort(function(a,b){return a-b;}).forEach(function(v){
+    var p=document.createElement('div');
+    p.className='pill'; p.id='pill-'+v; p.textContent='⭐ '+v;
+    valuesEl.appendChild(p);
+  });
+}
+
+function paintBest(){ $('bestPill').textContent='⭐ Best: '+best; }
+
+function newGame(){
+  boxValues = shuffle(VALUES.slice());
+  opened = ROYALS.map(function(){ return false; });
+  yourBox = -1; phase='pick'; roundIdx=0; picksLeft=0; locked=false;
+  $('queenOv').classList.add('hidden');
+  $('finalOv').classList.add('hidden');
+  $('winOv').classList.add('hidden');
+  buildBoard(); paintBest();
+  statusEl.textContent='Tap a box to pick YOUR lucky box! 👑';
+}
+
+function setStatus(t){ statusEl.textContent=t; }
+
+function onCard(i){
+  ac();
+  if (locked) return;
+  if (phase==='pick'){
+    yourBox=i; phase='open'; roundIdx=0; picksLeft=ROUNDS[0];
+    cards.forEach(function(c){ c.classList.remove('pulse'); });
+    cards[i].classList.add('yours');
+    pop(); chime(false);
+    toast('👑 YOUR BOX!', ROYALS[i].name+' will keep it safe!');
+    setStatus('Great pick! Now open '+picksLeft+' boxes! 🎁');
+    return;
+  }
+  if (phase!=='open') return;
+  if (i===yourBox){
+    cards[i].classList.remove('shake'); void cards[i].offsetWidth; cards[i].classList.add('shake');
+    setStatus('That\'s YOUR box! 👑 Open a different one!');
+    return;
+  }
+  if (opened[i]) return;
+  openBox(i);
+}
+
+function openBox(i){
+  locked=true;
+  opened[i]=true;
+  var v=boxValues[i];
+  var pill=$('pill-'+v); if(pill) pill.classList.add('out');
+  var card=cards[i];
+  card.classList.add('opened');
+  var rev=document.createElement('div');
+  rev.className='reveal';
+  rev.innerHTML='<div class="stars">⭐ '+v+'</div><div class="lbl">stars!</div>';
+  card.appendChild(rev);
+  chime(v>=250);
+  toast('⭐ '+v, v>=250 ? 'Wow, a BIG one!' : ROYALS[i].name+'\'s box!');
+  picksLeft--;
+  setTimeout(function(){
+    locked=false;
+    if (picksLeft>0){
+      setStatus('Open '+picksLeft+' more box'+(picksLeft>1?'es':'')+'! 🎁');
+    } else if (roundIdx < ROUNDS.length){
+      showQueen();
+    }
+  }, 1150);
+}
+
+var toastTimer=null;
+function toast(big, sub){
+  var t=$('toast');
+  t.querySelector('.big').textContent=big;
+  t.querySelector('.sub').textContent=sub||'';
+  t.classList.add('show');
+  if(toastTimer) clearTimeout(toastTimer);
+  toastTimer=setTimeout(function(){ t.classList.remove('show'); }, 1000);
+}
+
+function remainingValues(){
+  var out=[];
+  for (var i=0;i<ROYALS.length;i++) if(!opened[i]) out.push(boxValues[i]);
+  return out;
+}
+
+function queenOffer(){
+  var rem=remainingValues(), sum=0;
+  for (var i=0;i<rem.length;i++) sum+=rem[i];
+  var avg=sum/rem.length;
+  var offer=Math.round(avg*OFFER_FACTOR[roundIdx]/5)*5;
+  return Math.max(5, offer);
+}
+
+function showQueen(){
+  phase='queen';
+  trumpet();
+  $('offerAmt').textContent='⭐ '+queenOffer();
+  $('queenOv').classList.remove('hidden');
+  setStatus('The Queen is making you an offer… 👑🐉');
+}
+
+$('dealBtn').addEventListener('click', function(){
+  var offer=queenOffer();
+  $('queenOv').classList.add('hidden');
+  endGame(offer, true);
+});
+$('noDealBtn').addEventListener('click', function(){
+  pop();
+  $('queenOv').classList.add('hidden');
+  roundIdx++;
+  if (roundIdx < ROUNDS.length){
+    phase='open'; picksLeft=ROUNDS[roundIdx];
+    setStatus('No deal! Open '+picksLeft+' more boxes! 🎁');
+  } else {
+    showFinal();
+  }
+});
+
+function showFinal(){
+  phase='final';
+  var other=-1;
+  for (var i=0;i<ROYALS.length;i++) if(!opened[i] && i!==yourBox) other=i;
+  var pair=$('finalPair');
+  pair.innerHTML='';
+  [[yourBox,'Keep YOUR box 👑'],[other,'Swap to this one 🔀']].forEach(function(pairSpec){
+    var idx=pairSpec[0], r=ROYALS[idx];
+    var fc=document.createElement('div');
+    fc.className='finalcard';
+    fc.style.setProperty('--boxcolor', r.color);
+    fc.innerHTML='<img src="assets/img/'+r.img+'" alt="'+r.name+'">'+
+      '<div class="fname">'+r.name+'</div>'+
+      '<div class="fbtn">'+pairSpec[1]+'</div>';
+    fc.addEventListener('click', function(){ endGame(boxValues[idx], false); });
+    pair.appendChild(fc);
+  });
+  $('finalOv').classList.remove('hidden');
+  trumpet();
+  setStatus('Last choice! Keep, or swap? ✨');
+}
+
+function endGame(won, dealt){
+  phase='done';
+  $('finalOv').classList.add('hidden');
+  $('queenOv').classList.add('hidden');
+  var yourVal=boxValues[yourBox];
+  if (won>best){ best=won; localStorage.setItem('royalBoxesBest', String(best)); paintBest(); }
+  $('winTitle').textContent = dealt ? 'You made a deal! 🤝' : 'Your box sparkles! ✨';
+  $('winAmt').textContent='⭐ '+won;
+  $('winNote').textContent = dealt
+    ? 'Your box had ⭐ '+yourVal+' inside. What a royal deal!'
+    : (won>=250 ? 'WOW! So many stars! The whole kingdom is cheering! 🎉' : 'Every star counts in the kingdom! Play again for more! 🌈');
+  $('winOv').classList.remove('hidden');
+  fanfare(); launchConfetti();
+  setTimeout(launchConfetti, 700);
+}
+
+function launchConfetti(){
+  var c=document.createElement('canvas');
+  c.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:60';
+  c.width=innerWidth; c.height=innerHeight; document.body.appendChild(c);
+  var x=c.getContext('2d'), P=[], cols=['#ff5d8f','#ffb340','#5dc9ff','#8dff57','#c77dff','#ffd23f'];
+  for(var i=0;i<110;i++) P.push({x:Math.random()*c.width, y:-20-Math.random()*c.height*0.4,
+    w:6+Math.random()*7, h:8+Math.random()*10, vy:2.2+Math.random()*2.6, ph:Math.random()*7, c:cols[i%6]});
+  var t0=performance.now();
+  (function tick(now){
+    var el=(now-t0)/1000;
+    x.clearRect(0,0,c.width,c.height);
+    for(var i=0;i<P.length;i++){ var p=P[i];
+      p.y+=p.vy; p.ph+=0.08;
+      x.save(); x.translate(p.x+Math.sin(p.ph)*20, p.y); x.rotate(p.ph);
+      x.fillStyle=p.c; x.fillRect(-p.w/2,-p.h/2,p.w,p.h); x.restore();
+    }
+    if(el<3.2) requestAnimationFrame(tick); else c.remove();
+  })(t0);
+}
+
+$('newBtn').addEventListener('click', function(){ pop(); newGame(); });
+$('playAgainBtn').addEventListener('click', function(){ pop(); newGame(); });
+$('soundBtn').addEventListener('click', function(){
+  soundOn=!soundOn; localStorage.setItem('royalBoxesSound', soundOn?'on':'off');
+  $('soundBtn').textContent=soundOn?'🔊':'🔇'; if(soundOn) pop();
+});
+document.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+
+$('soundBtn').textContent=soundOn?'🔊':'🔇';
+newGame();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/kid-games/sw.js', { scope: '/kid-games/' });
+  });
+}
+})();
+</script>
+</body>
+</html>

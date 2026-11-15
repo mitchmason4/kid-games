@@ -4,527 +4,657 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" content="#a06bff">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#fdf6ff">
+<title>Princess Puzzles 👑</title>
 <link rel="apple-touch-icon" href="/kid-games/icon-sudoku.png">
-<title>Princess Sudoku 👑</title>
-<!--
-  Princess Sudoku — a 4x4 Sudoku for a 4-year-old, with princesses
-  instead of numbers. Every row, column, and 2x2 box must hold all
-  four princesses, each exactly once. Puzzles are generated fresh
-  every game with only 4-6 empty cells, each solvable by simple
-  process of elimination (always at least one cell with only one
-  possible princess). No words in the gameplay: tap an empty cell,
-  tap a princess. A wrong princess bounces back gently; a right one
-  pops in with a chime. Tapping a cell lights up its row, column,
-  and box so she can see which princess is missing. The only words
-  in the whole game are the "Good Job Emi! Dada" reward, like the
-  other games. Portraits reused from Princess Guess Who.
-  All pictures are AI-generated cartoon illustrations.
--->
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html, body { height:100%; overscroll-behavior:none; }
+  html, body { height:100%; }
   body {
-    font-family: ui-rounded, -apple-system, "Segoe UI", Roboto, sans-serif;
-    background: linear-gradient(180deg, #ffe9f6 0%, #e7d6ff 45%, #cfe8ff 100%);
-    display:flex; flex-direction:column; height:100dvh; overflow:hidden;
-    user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
-    color:#5b2a86; touch-action:manipulation;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:linear-gradient(180deg,#fdf6ff 0%,#f3e8ff 55%,#e9d5ff 100%);
+    min-height:100dvh; display:flex; flex-direction:column; align-items:center;
+    overflow:hidden; user-select:none; -webkit-user-select:none; touch-action:manipulation;
   }
+  /* ---------- header ---------- */
   header {
-    display:flex; align-items:center; gap:10px;
-    padding: max(10px, env(safe-area-inset-top)) 14px 4px;
+    width:100%; max-width:640px; display:flex; align-items:center; justify-content:space-between;
+    padding:calc(10px + env(safe-area-inset-top)) 16px 6px; gap:8px;
   }
-  #logo { width:52px; height:52px; flex:0 0 auto; filter:drop-shadow(0 3px 3px rgba(91,42,134,.25)); }
-  #solvedPill {
-    display:flex; align-items:center; gap:7px; margin-right:auto;
-    font-weight:900; font-size:clamp(17px, 4vw, 21px); color:#8a5a00;
-    background:#fff7d6; border-radius:999px; padding:8px 15px;
-    box-shadow:0 3px 0 rgba(200,150,0,.35);
+  .logo { width:52px; height:52px; flex:0 0 auto; filter:drop-shadow(0 3px 4px rgba(124,58,237,.3)); }
+  .pill {
+    display:flex; align-items:center; gap:6px; background:rgba(255,255,255,.85);
+    border:2px solid #e9d5ff; border-radius:999px; padding:7px 12px;
+    box-shadow:0 2px 8px rgba(124,58,237,.12);
   }
-  #solvedPill svg { width:26px; height:26px; }
-  .iconBtn {
-    border:none; cursor:pointer; width:52px; height:52px; flex:0 0 auto;
-    background:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center;
-    box-shadow:0 3px 0 rgba(124,58,237,.35), 0 6px 14px rgba(91,42,134,.12);
+  .pill svg { width:22px; height:22px; }
+  .pill .num { font-size:20px; font-weight:800; color:#7c3aed; }
+  .pill .stars { font-size:18px; letter-spacing:1px; color:#f59e0b; line-height:1; }
+  button.icon-btn {
+    width:48px; height:48px; border-radius:50%; border:2px solid #e9d5ff;
+    background:rgba(255,255,255,.9); box-shadow:0 2px 8px rgba(124,58,237,.12);
+    display:flex; align-items:center; justify-content:center; cursor:pointer; flex:0 0 auto;
   }
-  .iconBtn:active { transform:translateY(2px); box-shadow:0 1px 0 rgba(124,58,237,.35); }
-  .iconBtn svg { width:30px; height:30px; }
-  /* Board */
-  #boardWrap { flex:1; min-height:0; display:flex; align-items:center; justify-content:center; padding:8px 14px; }
+  button.icon-btn:active { transform:scale(.92); }
+  button.icon-btn svg { width:26px; height:26px; }
+  button.level-pill { cursor:pointer; }
+  button.level-pill:active { transform:scale(.94); }
+  /* ---------- board ---------- */
+  main { flex:1; width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; padding:6px 12px 12px; }
   #board {
-    display:grid; grid-template-columns:repeat(4, 1fr); gap:0;
-    width:min(92vw, 52dvh, 520px); aspect-ratio:1/1;
-    background:#7c3aed; border:5px solid #7c3aed; border-radius:22px; overflow:hidden;
-    box-shadow:0 8px 0 rgba(91,42,134,.25), 0 14px 28px rgba(91,42,134,.2);
+    display:grid; gap:0; width:min(94vw, 56dvh, 560px); aspect-ratio:1/1;
+    border:4px solid #7c3aed; border-radius:22px; overflow:hidden;
+    box-shadow:0 10px 28px rgba(124,58,237,.28); background:#fff;
   }
-  .cell {
-    position:relative; cursor:pointer; background:#fff;
-    border:2px solid #e8dff5; display:flex; align-items:center; justify-content:center;
-    transition:background .15s;
+  .cell { position:relative; overflow:hidden; cursor:pointer; }
+  .cell img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; pointer-events:none; animation:popIn .28s cubic-bezier(.34,1.56,.64,1); }
+  @keyframes popIn { 0%{transform:scale(.4);opacity:0} 100%{transform:scale(1);opacity:1} }
+  .hole {
+    position:absolute; inset:22%; border:3px dashed rgba(255,255,255,.75); border-radius:50%;
+    pointer-events:none;
   }
-  .cell:nth-child(2), .cell:nth-child(6), .cell:nth-child(10), .cell:nth-child(14) { border-right:5px solid #7c3aed; }
-  .cell:nth-child(5), .cell:nth-child(6), .cell:nth-child(7), .cell:nth-child(8) { border-bottom:5px solid #7c3aed; }
-  .cell img { width:100%; height:100%; object-fit:cover; display:block; pointer-events:none; }
-  .cell.given img { opacity:1; }
-  .cell.empty { background:#faf5ff; }
-  .cell.empty .hole {
-    width:44%; height:44%; border-radius:50%;
-    border:4px dashed rgba(124,58,237,.3);
+  .mark { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; }
+  .mark svg { width:52%; height:52%; opacity:.5; }
+  .given-badge {
+    position:absolute; top:3px; right:3px; width:22px; height:22px; border-radius:50%;
+    background:linear-gradient(180deg,#fde68a,#f59e0b); color:#fff; font-size:13px; line-height:22px;
+    text-align:center; box-shadow:0 1px 4px rgba(0,0,0,.25); pointer-events:none; z-index:3;
+    text-shadow:0 1px 2px rgba(0,0,0,.25);
   }
-  .cell.related { background:#f3eaff; }
-  /* Ring drawn with ::after so it sits ON TOP of the portrait picture.
-     An inset box-shadow on the cell itself paints underneath the img
-     and is invisible on filled cells. */
-  .cell.related::after {
-    content:''; position:absolute; inset:0; pointer-events:none;
-    box-shadow:inset 0 0 0 4px #c4b5fd;
+  /* hint pulse: overlay ring drawn ON TOP of the cell content */
+  .cell.hintPulse::after {
+    content:''; position:absolute; inset:0; pointer-events:none; z-index:4;
+    animation:hintRing 1.6s ease-in-out 2;
   }
-  .cell.empty.related .hole { border-color:rgba(124,58,237,.55); }
-  .cell.selected { background:#fff7d6; box-shadow:inset 0 0 0 5px #f7c948; }
-  .cell.selected .hole { border-color:#f7c948; }
-  .cell.hintPulse { animation:hintPulse .55s ease-in-out 3; }
-  @keyframes hintPulse {
-    0%, 100% { box-shadow:inset 0 0 0 3px rgba(247,201,72,.3); }
-    50% { box-shadow:inset 0 0 0 8px #f7c948; }
-  }
-  @keyframes shake {
-    0%, 100% { transform:translateX(0); }
-    20% { transform:translateX(-7px); } 40% { transform:translateX(7px); }
-    60% { transform:translateX(-5px); } 80% { transform:translateX(5px); }
+  @keyframes hintRing {
+    0%,100% { box-shadow:inset 0 0 0 4px rgba(245,158,11,.25); background:rgba(253,230,138,0); }
+    50% { box-shadow:inset 0 0 0 7px #f59e0b; background:rgba(253,230,138,.35); }
   }
   .cell.shake { animation:shake .4s; }
-  .cell.shakeBad { box-shadow:inset 0 0 0 5px #e74c3c; }
-  @keyframes popIn { from { transform:scale(.3); } to { transform:scale(1); } }
-  .cell.justPlaced img { animation:popIn .3s cubic-bezier(.34,1.56,.64,1); }
-  /* Tray */
-  #trayWrap {
-    padding:10px 10px max(14px, env(safe-area-inset-bottom));
-    background:rgba(255,255,255,.55); border-top:3px solid rgba(255,255,255,.8);
+  .cell.shakeBad::after {
+    content:''; position:absolute; inset:0; pointer-events:none; z-index:4;
+    box-shadow:inset 0 0 0 5px #f87171; background:rgba(248,113,113,.18);
   }
-  #tray { display:flex; gap:12px; justify-content:center; align-items:center; max-width:560px; margin:0 auto; }
-  .trayBtn {
-    width:clamp(64px, 17vw, 84px); height:clamp(64px, 17vw, 84px);
-    border-radius:22px; cursor:pointer; overflow:hidden; padding:0;
-    border:4px solid #fff; background:#fff;
-    box-shadow:0 4px 0 rgba(124,58,237,.3), 0 8px 16px rgba(91,42,134,.15);
-    transition:transform .1s;
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-7px)} 40%{transform:translateX(7px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }
+  /* ---------- bottom bar ---------- */
+  .bottombar { display:flex; align-items:center; justify-content:center; gap:20px; padding-bottom:calc(10px + env(safe-area-inset-bottom)); }
+  .hint-btn {
+    width:78px; height:78px; border-radius:50%; border:3px solid #fbbf24; cursor:pointer;
+    background:linear-gradient(180deg,#fde68a,#f59e0b);
+    box-shadow:0 6px 16px rgba(245,158,11,.45); display:flex; align-items:center; justify-content:center;
   }
-  .trayBtn:active { transform:scale(.92); }
-  .trayBtn img { width:100%; height:100%; object-fit:cover; display:block; pointer-events:none; }
-  .trayBtn.picked { border-color:#f7c948; box-shadow:0 0 0 4px #f7c948, 0 4px 0 rgba(124,58,237,.3); }
-  #hintBtn {
-    width:clamp(64px, 17vw, 84px); height:clamp(64px, 17vw, 84px);
-    border-radius:50%; cursor:pointer; margin-left:4px; flex:0 0 auto;
-    background:linear-gradient(180deg, #ffe27a, #f7c948); border:4px solid #fff;
-    display:flex; align-items:center; justify-content:center;
-    box-shadow:0 5px 0 rgba(180,130,0,.45), 0 8px 16px rgba(91,42,134,.2);
+  .hint-btn:active { transform:scale(.92); }
+  .hint-btn svg { width:44px; height:44px; }
+  .progress-dots { display:flex; gap:8px; align-items:center; }
+  .progress-dots .dot {
+    width:16px; height:16px; border-radius:50%; background:rgba(255,255,255,.9);
+    border:2px solid #d8b4fe; transition:all .25s;
   }
-  #hintBtn:active { transform:translateY(3px); box-shadow:0 2px 0 rgba(180,130,0,.45); }
-  #hintBtn svg { width:60%; height:60%; }
-  /* Win overlay */
+  .progress-dots .dot.done { background:#a78bfa; border-color:#7c3aed; transform:scale(1.15); }
+  /* ---------- overlays ---------- */
   .overlay {
-    position:fixed; inset:0; background:rgba(60,20,90,.55); z-index:50;
-    display:none; align-items:center; justify-content:center; padding:18px;
+    position:fixed; inset:0; background:rgba(76,29,149,.55); backdrop-filter:blur(4px);
+    display:none; align-items:center; justify-content:center; z-index:50; padding:20px;
   }
   .overlay.show { display:flex; }
-  .panel {
-    background:linear-gradient(180deg, #fff, #ffe9f6); border-radius:28px; padding:20px;
-    max-width:480px; width:100%; text-align:center; border:5px solid #ffd94d;
-    box-shadow:0 16px 40px rgba(0,0,0,.35); max-height:92dvh; overflow-y:auto;
-    animation:popIn .35s cubic-bezier(.34,1.56,.64,1);
+  .card {
+    background:linear-gradient(180deg,#fff,#fdf4ff); border-radius:28px; padding:26px 24px;
+    text-align:center; box-shadow:0 20px 50px rgba(0,0,0,.35); max-width:420px; width:100%;
+    animation:cardIn .35s cubic-bezier(.34,1.56,.64,1);
   }
-  .panel .hero { width:100%; aspect-ratio:3/2; object-fit:cover; border-radius:18px; border:4px solid #fff; box-shadow:0 4px 12px rgba(91,42,134,.25); }
-  .panel h2 { font-size:clamp(24px, 6vw, 32px); color:#d63384; margin:12px 0 4px; text-shadow:0 2px 0 #fff; }
-  #starsRow { display:flex; justify-content:center; gap:8px; margin:10px 0 2px; font-size:40px; color:#f7c948; text-shadow:0 3px 0 rgba(180,130,0,.35); }
-  #againBtn {
-    margin-top:14px; width:84px; height:84px; border-radius:50%; cursor:pointer;
-    background:linear-gradient(180deg, #ffe27a, #f7c948); border:4px solid #fff;
+  @keyframes cardIn { 0%{transform:scale(.8);opacity:0} 100%{transform:scale(1);opacity:1} }
+  .card .win-img { width:100%; border-radius:18px; display:block; }
+  .card h1 { font-size:30px; color:#7c3aed; margin:14px 0 4px; }
+  .card .stars-big { font-size:30px; letter-spacing:6px; color:#f59e0b; }
+  .round-btn {
+    margin-top:18px; width:84px; height:84px; border-radius:50%; border:3px solid #fbbf24; cursor:pointer;
+    background:linear-gradient(180deg,#fde68a,#f59e0b); box-shadow:0 6px 16px rgba(245,158,11,.45);
     display:inline-flex; align-items:center; justify-content:center;
-    box-shadow:0 5px 0 rgba(180,130,0,.45), 0 8px 16px rgba(91,42,134,.2);
   }
-  #againBtn:active { transform:translateY(3px); box-shadow:0 2px 0 rgba(180,130,0,.45); }
-  #againBtn svg { width:46px; height:46px; }
-  .confetti { position:fixed; top:-14px; z-index:60; pointer-events:none; border-radius:3px; }
+  .round-btn:active { transform:scale(.92); }
+  .round-btn svg { width:44px; height:44px; }
+  /* level select */
+  .level-title { font-size:26px; color:#7c3aed; font-weight:800; margin-bottom:4px; }
+  .level-sub { font-size:15px; color:#a78bfa; margin-bottom:18px; }
+  .level-row { display:flex; gap:14px; justify-content:center; }
+  .level-card {
+    flex:1; background:#fff; border:3px solid #e9d5ff; border-radius:20px; padding:16px 8px 12px;
+    cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:10px;
+    box-shadow:0 4px 12px rgba(124,58,237,.12);
+  }
+  .level-card:active { transform:scale(.95); }
+  .level-card.current { border-color:#f59e0b; box-shadow:0 0 0 3px #fde68a, 0 4px 12px rgba(124,58,237,.12); }
+  .mini-grid { display:grid; gap:2px; width:76px; height:76px; border-radius:8px; overflow:hidden; border:2px solid #7c3aed; }
+  .mini-grid div { border-radius:1px; }
+  .level-card .stars { font-size:24px; color:#f59e0b; letter-spacing:2px; line-height:1; }
+  .close-x {
+    margin-top:18px; width:52px; height:52px; border-radius:50%; border:2px solid #e9d5ff; cursor:pointer;
+    background:#fff; display:inline-flex; align-items:center; justify-content:center;
+    font-size:26px; color:#a78bfa; font-weight:700;
+  }
+  .close-x:active { transform:scale(.92); }
+  canvas#confetti { position:fixed; inset:0; pointer-events:none; z-index:60; display:none; }
 </style>
 </head>
 <body>
-<header>
-  <span id="logo" aria-hidden="true"></span>
-  <span id="solvedPill" aria-label="Puzzles solved"></span>
-  <button class="iconBtn" id="soundBtn" aria-label="Sound on or off"></button>
-  <button class="iconBtn" id="newBtn" aria-label="New puzzle"></button>
-</header>
-<div id="boardWrap"><div id="board"></div></div>
-<div id="trayWrap"><div id="tray"></div></div>
 
-<div class="overlay" id="winOverlay">
-  <div class="panel">
-    <img class="hero" src="assets/img/win.jpg" alt="">
-    <h2>Good Job Emi! 💕 Dada</h2>
-    <div id="starsRow">★ ★ ★</div>
-    <br>
-    <button id="againBtn" aria-label="Play again"></button>
+<header>
+  <svg class="logo" viewBox="0 0 64 64" aria-hidden="true">
+    <rect x="6" y="6" width="52" height="52" rx="14" fill="#a78bfa"/>
+    <rect x="12" y="12" width="18" height="18" rx="5" fill="#ffc7dd"/>
+    <rect x="34" y="12" width="18" height="18" rx="5" fill="#bcd8ff"/>
+    <rect x="12" y="34" width="18" height="18" rx="5" fill="#ffe9a3"/>
+    <rect x="34" y="34" width="18" height="18" rx="5" fill="#c4f0c8"/>
+    <path d="M32 2 L37 10 L45 7 L40 15 L47 18 L32 24 L17 18 L24 15 L19 7 L27 10 Z" fill="#f59e0b" stroke="#fff" stroke-width="1.5"/>
+  </svg>
+  <button class="pill level-pill" id="levelBtn" aria-label="Choose level">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg>
+    <span class="stars" id="levelStars">★</span>
+  </button>
+  <div class="pill" aria-label="Puzzles solved">
+    <svg viewBox="0 0 24 24"><path d="M6 2h12v2h3v3c0 2.8-2.2 5-5 5h-.42A6 6 0 0 1 13 15.92V18h3v2H8v-2h3v-2.08A6 6 0 0 1 8.42 12H8c-2.8 0-5-2.2-5-5V4h3V2zm-1 4v1c0 1.66 1.34 3 3 3V6H5zm14 0h-3v4c1.66 0 3-1.34 3-3V6z" fill="#f59e0b"/></svg>
+    <span class="num" id="solvedCount">0</span>
+  </div>
+  <button class="icon-btn" id="soundBtn" aria-label="Sound on or off"></button>
+  <button class="icon-btn" id="newBtn" aria-label="New puzzle">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+  </button>
+</header>
+
+<main>
+  <div id="board"></div>
+  <div class="bottombar">
+    <div class="progress-dots" id="dots"></div>
+    <button class="hint-btn" id="hintBtn" aria-label="Hint">
+      <svg viewBox="0 0 24 24"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z" fill="#fff"/><path d="M19 15l.9 3.1L23 19l-3.1.9L19 23l-.9-3.1L15 19l3.1-.9L19 15z" fill="#fff" opacity=".85"/></svg>
+    </button>
+    <div class="progress-dots" style="visibility:hidden" aria-hidden="true"><div class="dot"></div></div>
+  </div>
+</main>
+
+<!-- level select -->
+<div class="overlay" id="levelOverlay">
+  <div class="card">
+    <div class="level-title">👑</div>
+    <div class="level-sub">Pick a puzzle size!</div>
+    <div class="level-row" id="levelRow"></div>
+    <button class="close-x" id="levelClose" aria-label="Close">✕</button>
   </div>
 </div>
 
+<!-- win -->
+<div class="overlay" id="winOverlay">
+  <div class="card">
+    <img class="win-img" src="assets/img/win.jpg" alt="">
+    <h1>Good Job Emi! 💕 Dada</h1>
+    <div class="stars-big">★ ★ ★</div>
+    <br>
+    <button class="round-btn" id="againBtn" aria-label="Play again">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+    </button>
+  </div>
+</div>
+<canvas id="confetti"></canvas>
+
 <script>
-"use strict";
-/* ---------- icons ---------- */
-function svgWrap(inner){ return '<svg viewBox="0 0 64 64" aria-hidden="true">'+inner+'</svg>'; }
-function gridLogoSVG(){
-  return svgWrap('<rect x="6" y="6" width="52" height="52" rx="12" fill="#fff" stroke="#7c3aed" stroke-width="3"/>'
-    + '<line x1="32" y1="6" x2="32" y2="58" stroke="#7c3aed" stroke-width="3"/>'
-    + '<line x1="6" y1="32" x2="58" y2="32" stroke="#7c3aed" stroke-width="3"/>'
-    + '<path d="M14 26 L16 16 L21 22 L26 13 L31 22 L36 16 L38 26 Z" fill="#f7c948" stroke="#d99a1f" stroke-width="1.5" stroke-linejoin="round" transform="translate(-3,2) scale(.82)"/>'
-    + '<circle cx="45" cy="19" r="5" fill="#ff8fb5"/><circle cx="19" cy="45" r="5" fill="#4da6ff"/><circle cx="45" cy="45" r="5" fill="#3fbf6f"/>');
-}
-function starSVG(){
-  return svgWrap('<path d="M32 6 L39 24 L58 25 L43 37 L48 56 L32 45 L16 56 L21 37 L6 25 L25 24 Z" fill="#f7c948" stroke="#d99a1f" stroke-width="2" stroke-linejoin="round"/>');
-}
-function sparkleSVG(){
-  return svgWrap('<path d="M32 6 L38 26 L58 32 L38 38 L32 58 L26 38 L6 32 L26 26 Z" fill="#fff" stroke="#d99a1f" stroke-width="2" stroke-linejoin="round"/>'
-    + '<path d="M50 8 L52.5 15 L59 17.5 L52.5 20 L50 27 L47.5 20 L41 17.5 L47.5 15 Z" fill="#fff"/>');
-}
-function refreshSVG(color){
-  color = color || '#7c3aed';
-  return svgWrap('<path d="M54 32 A22 22 0 1 1 48 15" fill="none" stroke="'+color+'" stroke-width="6" stroke-linecap="round"/>'
-    + '<path d="M48 5 L53 18 L40 16 Z" fill="'+color+'"/>');
-}
-function speakerSVG(on){
-  var waves = on
-    ? '<path d="M40 24 Q46 32 40 40 M46 19 Q55 32 46 45" fill="none" stroke="#7c3aed" stroke-width="4" stroke-linecap="round"/>'
-    : '<path d="M40 24 L52 40 M52 24 L40 40" fill="none" stroke="#e74c3c" stroke-width="4.5" stroke-linecap="round"/>';
-  return svgWrap('<path d="M8 25 L18 25 L30 13 L30 51 L18 39 L8 39 Z" fill="#7c3aed"/>' + waves);
-}
+/* ================= Meowdoku-style puzzle engine =================
+   Rules: N x N board, N colored regions. Place exactly ONE princess in
+   every row, every column, and every colored region. Princesses may not
+   touch, not even diagonally. One unique solution, solvable by pure
+   elimination (no guessing). */
+var LEVELS = { 1:{n:4}, 2:{n:5}, 3:{n:6} };
+var PALETTE = ['#ffc7dd','#bcd8ff','#ffd9a8','#ffe9a3','#c4f0c8','#e3ccff','#b8ece8'];
+var PRINCESS_IMG = 'assets/img/princess-01.jpg';
 
-/* ---------- the four princesses (distinct hair + outfit colors) ---------- */
-var PRINCESSES = [
-  { img:'princess-01.jpg' }, /* blonde, pink dress, tiara */
-  { img:'princess-07.jpg' }, /* red hair, green dress, crown */
-  { img:'princess-09.jpg' }, /* black hair, red dress, tiara */
-  { img:'princess-12.jpg' }  /* brown hair, purple mermaid tail */
-];
-
-/* ---------- 4x4 Sudoku: generator + solver ---------- */
-function shuffled(arr){
-  arr = arr.slice();
-  for (var i = arr.length - 1; i > 0; i--){
+function shuffled(a){
+  a = a.slice();
+  for (var i = a.length - 1; i > 0; i--){
     var j = Math.floor(Math.random() * (i + 1));
-    var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    var t = a[i]; a[i] = a[j]; a[j] = t;
   }
-  return arr;
+  return a;
 }
-function peers(r, c){
-  var out = {}, k;
-  for (k = 0; k < 4; k++){ out[r * 4 + k] = 1; out[k * 4 + c] = 1; }
-  var br = Math.floor(r / 2) * 2, bc = Math.floor(c / 2) * 2;
-  for (var dr = 0; dr < 2; dr++) for (var dc = 0; dc < 2; dc++) out[(br + dr) * 4 + (bc + dc)] = 1;
-  delete out[r * 4 + c];
-  return Object.keys(out).map(Number);
+/* Random permutation with no two consecutive rows holding adjacent columns
+   (the no-touch rule: solution cells are never 8-neighbors). */
+function genSolution(N){
+  while (true){
+    var p = shuffled(Array.from({length:N}, function(_,i){ return i; }));
+    var ok = true;
+    for (var r = 0; r < N - 1; r++) if (Math.abs(p[r] - p[r+1]) <= 1){ ok = false; break; }
+    if (ok) return p;
+  }
 }
-function candidates(grid, idx){
-  var used = {}, r = Math.floor(idx / 4), c = idx % 4;
-  peers(r, c).forEach(function(p){ if (grid[p] >= 0) used[grid[p]] = 1; });
-  var res = [];
-  for (var v = 0; v < 4; v++) if (!used[v]) res.push(v);
-  return res;
+/* Grow N connected regions, each seeded on exactly one solution cell:
+   repeatedly attach a random frontier cell to a random assigned neighbor. */
+function growRegions(N, perm){
+  var region = new Array(N*N).fill(-1);
+  for (var r = 0; r < N; r++) region[r*N + perm[r]] = r;
+  function nbrs4(i){
+    var rr = (i/N)|0, cc = i%N, o = [];
+    if (rr > 0) o.push(i-N);
+    if (rr < N-1) o.push(i+N);
+    if (cc > 0) o.push(i-1);
+    if (cc < N-1) o.push(i+1);
+    return o;
+  }
+  var unassigned = new Set();
+  for (var i = 0; i < N*N; i++) if (region[i] === -1) unassigned.add(i);
+  while (unassigned.size){
+    var frontier = [];
+    unassigned.forEach(function(i){
+      if (nbrs4(i).some(function(j){ return region[j] !== -1; })) frontier.push(i);
+    });
+    var cell = frontier[Math.floor(Math.random() * frontier.length)];
+    var opts = nbrs4(cell).filter(function(j){ return region[j] !== -1; });
+    region[cell] = region[opts[Math.floor(Math.random() * opts.length)]];
+    unassigned.delete(cell);
+  }
+  return region;
 }
-function fullGrid(){
-  var grid = [];
-  for (var i = 0; i < 16; i++) grid[i] = -1;
-  function fill(idx){
-    if (idx === 16) return true;
-    var opts = shuffled(candidates(grid, idx));
-    for (var k = 0; k < opts.length; k++){
-      grid[idx] = opts[k];
-      if (fill(idx + 1)) return true;
+function neighbors8(N, i){
+  var r = (i/N)|0, c = i%N, o = [];
+  for (var dr = -1; dr <= 1; dr++) for (var dc = -1; dc <= 1; dc++){
+    if (!dr && !dc) continue;
+    var rr = r + dr, cc = c + dc;
+    if (rr >= 0 && rr < N && cc >= 0 && cc < N) o.push(rr*N + cc);
+  }
+  return o;
+}
+/* Every cell ruled out by the placed princesses: their rows, columns,
+   regions, and all 8 neighboring squares (no-touch). */
+function computeEliminated(N, regions, placed){
+  var elim = new Set();
+  placed.forEach(function(i){
+    var r = (i/N)|0, c = i%N;
+    for (var k = 0; k < N; k++){ elim.add(r*N + k); elim.add(k*N + c); }
+    for (var j = 0; j < N*N; j++) if (regions[j] === regions[i]) elim.add(j);
+    neighbors8(N, i).forEach(function(j){ elim.add(j); });
+  });
+  return elim;
+}
+/* Count solutions (up to 2) with the givens pre-placed. */
+function countSolutions(N, regions, givens){
+  var colUsed = new Array(N).fill(false), regUsed = new Array(N).fill(false);
+  var pos = new Array(N).fill(-1);
+  givens.forEach(function(i){
+    var r = (i/N)|0;
+    pos[r] = i%N; colUsed[i%N] = true; regUsed[regions[i]] = true;
+  });
+  var count = 0;
+  function bt(r){
+    if (count >= 2) return;
+    if (r === N){ count++; return; }
+    if (pos[r] !== -1){ bt(r+1); return; }
+    for (var c = 0; c < N; c++){
+      if (colUsed[c]) continue;
+      var idx = r*N + c;
+      if (regUsed[regions[idx]]) continue;
+      var touch = false;
+      for (var rr = 0; rr < N; rr++){
+        if (pos[rr] !== -1 && Math.abs(rr-r) <= 1 && Math.abs(pos[rr]-c) <= 1){ touch = true; break; }
+      }
+      if (touch) continue;
+      pos[r] = c; colUsed[c] = true; regUsed[regions[idx]] = true;
+      bt(r+1);
+      pos[r] = -1; colUsed[c] = false; regUsed[regions[idx]] = false;
+      if (count >= 2) return;
     }
-    grid[idx] = -1;
-    return false;
   }
-  fill(0);
-  return grid;
-}
-function countSolutions(grid, limit){
-  var gridCopy = grid.slice(), count = 0;
-  function solve(){
-    if (count >= limit) return;
-    var idx = gridCopy.indexOf(-1);
-    if (idx === -1){ count++; return; }
-    var opts = candidates(gridCopy, idx);
-    for (var k = 0; k < opts.length; k++){
-      gridCopy[idx] = opts[k];
-      solve();
-      if (count >= limit) return;
-    }
-    gridCopy[idx] = -1;
-  }
-  solve();
+  bt(0);
   return count;
 }
-/* Solvable by naked singles only: repeatedly fill cells with exactly
-   one candidate; if we finish the grid, a child can solve it purely
-   by elimination, with no guessing. */
-function nakedSinglesSolvable(grid){
-  var g = grid.slice(), progress = true;
-  while (progress){
-    progress = false;
-    for (var i = 0; i < 16; i++){
-      if (g[i] === -1){
-        var opts = candidates(g, i);
-        if (opts.length === 1){ g[i] = opts[0]; progress = true; }
-        else if (opts.length === 0) return false;
-      }
+/* True if the puzzle solves by forced moves only: repeatedly place a
+   princess where a row, column, or region has exactly one candidate left. */
+function elimSolvable(N, regions, givens){
+  var placed = new Set(givens);
+  while (placed.size < N){
+    var elim = computeEliminated(N, regions, placed);
+    var progress = false;
+    function scanUnit(cells){
+      var has = cells.some(function(i){ return placed.has(i); });
+      if (has) return;
+      var cands = cells.filter(function(i){ return !elim.has(i); });
+      if (cands.length === 1){ placed.add(cands[0]); progress = true; }
     }
+    for (var r = 0; r < N; r++){
+      var row = []; for (var c = 0; c < N; c++) row.push(r*N + c);
+      scanUnit(row);
+    }
+    for (var c2 = 0; c2 < N; c2++){
+      var col = []; for (var r2 = 0; r2 < N; r2++) col.push(r2*N + c2);
+      scanUnit(col);
+    }
+    for (var g = 0; g < N; g++){
+      var reg = []; for (var i = 0; i < N*N; i++) if (regions[i] === g) reg.push(i);
+      scanUnit(reg);
+    }
+    if (!progress) return false;
   }
-  return g.indexOf(-1) === -1;
+  return true;
 }
-function generatePuzzle(){
-  for (var attempt = 0; attempt < 30; attempt++){
-    var solution = fullGrid();
-    var puzzle = solution.slice();
-    var removed = 0, target = 4 + Math.floor(Math.random() * 3); /* 4-6 empties */
-    var order = shuffled([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]);
-    for (var k = 0; k < order.length && removed < target; k++){
-      var idx = order[k], backup = puzzle[idx];
-      puzzle[idx] = -1;
-      if (countSolutions(puzzle, 2) === 1 && nakedSinglesSolvable(puzzle)){
-        removed++;
-      } else {
-        puzzle[idx] = backup;
-      }
-    }
-    if (removed >= 4) return { puzzle:puzzle, solution:solution };
+/* Greedy color assignment so neighboring regions never share a color. */
+function assignColors(N, regions){
+  var adj = Array.from({length:N}, function(){ return new Set(); });
+  for (var r = 0; r < N; r++) for (var c = 0; c < N; c++){
+    var id = regions[r*N + c];
+    if (c+1 < N && regions[r*N+c+1] !== id){ adj[id].add(regions[r*N+c+1]); adj[regions[r*N+c+1]].add(id); }
+    if (r+1 < N && regions[(r+1)*N+c] !== id){ adj[id].add(regions[(r+1)*N+c]); adj[regions[(r+1)*N+c]].add(id); }
   }
-  /* Fallback (essentially unreachable): a fixed easy puzzle. */
-  var solution = [0,1,2,3, 2,3,0,1, 1,0,3,2, 3,2,1,0];
-  var puzzle = solution.slice();
-  puzzle[1] = -1; puzzle[6] = -1; puzzle[8] = -1; puzzle[11] = -1; puzzle[14] = -1;
-  return { puzzle:puzzle, solution:solution };
+  var pal = shuffled(PALETTE);
+  var colorOf = new Array(N).fill(null);
+  for (var g = 0; g < N; g++){
+    var used = new Set();
+    adj[g].forEach(function(j){ if (colorOf[j]) used.add(colorOf[j]); });
+    colorOf[g] = pal.find(function(col){ return !used.has(col); }) || pal[g % pal.length];
+  }
+  return colorOf;
+}
+/* Hand-built fallbacks (verified unique + elimination-solvable in testing). */
+var FALLBACKS = {
+  4: { perm:[1,3,0,2], regions:[0,0,1,1, 2,0,1,1, 2,2,3,1, 2,3,3,3] },
+  5: { perm:[3,1,4,0,2], regions:[1,1,1,0,2, 1,1,2,2,2, 3,4,4,4,2, 3,4,4,4,4, 4,4,4,4,4] },
+  6: { perm:[5,3,1,4,0,2], regions:[2,2,0,0,0,0, 2,2,0,1,0,0, 2,2,3,3,0,0, 2,2,2,3,3,3, 4,4,4,3,3,3, 4,4,5,3,3,3] }
+};
+function genPuzzle(N){
+  var fallback = null;
+  for (var attempt = 0; attempt < 600; attempt++){
+    var perm = genSolution(N);
+    var regions = growRegions(N, perm);
+    var solCells = perm.map(function(c, r){ return r*N + c; });
+    var given = solCells[Math.floor(Math.random() * solCells.length)];
+    var givens = new Set([given]);
+    if (countSolutions(N, regions, givens) !== 1) continue;
+    var puzzle = { N:N, perm:perm, regions:regions, given:given };
+    if (!fallback) fallback = puzzle;
+    if (elimSolvable(N, regions, givens)) return puzzle;
+  }
+  if (fallback) return fallback;
+  /* Extremely unlikely: use the hand-built fallback. */
+  var fb = FALLBACKS[N];
+  var solCells2 = fb.perm.map(function(c, r){ return r*N + c; });
+  return { N:N, perm:fb.perm, regions:fb.regions,
+           given: solCells2[Math.floor(Math.random() * solCells2.length)] };
 }
 
-/* ---------- sounds ---------- */
-var soundOn = true, solved = 0;
-try { soundOn = localStorage.getItem('sudokuSound') !== '0'; } catch(e) {}
-try { solved = parseInt(localStorage.getItem('sudokuSolved') || '0', 10) || 0; } catch(e) {}
-var AC = null;
-function tone(freq, dur, type, delay, vol){
+/* ================= sounds ================= */
+var soundOn = true;
+try {
+  var s = localStorage.getItem('ppSound');
+  if (s === null) s = localStorage.getItem('sudokuSound');
+  soundOn = s !== '0';
+} catch(e) {}
+var actx = null;
+function tone(freq, dur, type, vol, when){
   if (!soundOn) return;
   try {
-    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
-    if (AC.state === 'suspended') AC.resume();
-    var t = AC.currentTime + (delay || 0);
-    var o = AC.createOscillator(), g = AC.createGain();
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    var t = actx.currentTime + (when || 0);
+    var o = actx.createOscillator(), g = actx.createGain();
     o.type = type || 'sine'; o.frequency.setValueAtTime(freq, t);
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(vol || 0.18, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(vol || 0.15, t + 0.02);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(g); g.connect(AC.destination);
+    o.connect(g); g.connect(actx.destination);
     o.start(t); o.stop(t + dur + 0.05);
   } catch(e) {}
 }
-function sndPop(){ tone(520, .09, 'triangle', 0, .16); tone(760, .1, 'triangle', .05, .14); }
-function sndGood(){ tone(523, .14, 'sine', 0, .18); tone(784, .2, 'sine', .1, .18); }
-function sndBad(){ tone(262, .18, 'sine', 0, .12); tone(220, .22, 'sine', .12, .12); }
-function sndHint(){ tone(880, .12, 'sine', 0, .14); tone(1175, .16, 'sine', .1, .14); }
-function sndWin(){ [523,659,784,1047,784,1047].forEach(function(f, i){ tone(f, .22, 'triangle', i * .13, .2); }); }
+function sndGood(){ tone(880, .18, 'sine', .16); tone(1318, .24, 'sine', .14, .07); }
+function sndBad(){ tone(196, .22, 'triangle', .1); }
+function sndPop(){ tone(520, .09, 'sine', .12); }
+function sndHint(){ tone(1046, .14, 'sine', .13); tone(1568, .2, 'sine', .11, .09); }
+function sndWin(){ [523,659,784,1046,1318].forEach(function(f,i){ tone(f,.3,'sine',.15,i*.11); }); }
 
-/* ---------- state ---------- */
-var puzzle = [], solution = [], given = [], placed = [],
-    selected = -1, picked = -1, locked = false;
+/* ================= game state ================= */
+var level = 1, puzzle = null, colors = null;
+var placed = new Set();   /* player-placed princess cells (excludes the given) */
+var locked = false;
+var solved = 0;
+try {
+  var sv = localStorage.getItem('ppSolved');
+  if (sv === null) sv = localStorage.getItem('sudokuSolved');
+  solved = parseInt(sv || '0', 10) || 0;
+  level = parseInt(localStorage.getItem('ppLevel') || '1', 10) || 1;
+  if (!LEVELS[level]) level = 1;
+} catch(e) {}
 
-var boardEl = document.getElementById('board'),
-    trayEl = document.getElementById('tray');
+var boardEl = document.getElementById('board');
+var dotsEl = document.getElementById('dots');
 
-document.getElementById('logo').innerHTML = gridLogoSVG();
-document.getElementById('soundBtn').innerHTML = speakerSVG(soundOn);
-document.getElementById('newBtn').innerHTML = refreshSVG();
-document.getElementById('againBtn').innerHTML = refreshSVG('#7a4a00');
-
-function renderSolved(){
-  document.getElementById('solvedPill').innerHTML = starSVG() + '<span>' + solved + '</span>';
+function allPlaced(){
+  var s = new Set(placed);
+  s.add(puzzle.given);
+  return s;
 }
-renderSolved();
-
-function buildBoard(){
+function isSolutionCell(i){
+  var r = (i/puzzle.N)|0;
+  return puzzle.perm[r] === (i % puzzle.N);
+}
+function render(){
+  var N = puzzle.N;
+  boardEl.style.gridTemplateColumns = 'repeat(' + N + ', 1fr)';
   boardEl.innerHTML = '';
-  for (var i = 0; i < 16; i++){
+  var ap = allPlaced();
+  var elim = computeEliminated(N, puzzle.regions, ap);
+  for (var i = 0; i < N*N; i++){
     (function(i){
+      var r = (i/N)|0, c = i%N;
       var cell = document.createElement('div');
       cell.className = 'cell';
-      cell.id = 'cell-' + i;
-      if (given[i]){
-        cell.classList.add('given');
-        cell.innerHTML = '<img src="assets/img/' + PRINCESSES[puzzle[i]].img + '" alt="" draggable="false">';
+      cell.style.background = colors[puzzle.regions[i]];
+      /* Thick edge where the neighbor belongs to a different region,
+         so the colored shapes read clearly. Thin edge inside a region. */
+      var thin = '1px solid rgba(124,58,237,.15)', thick = '3px solid #7c3aed';
+      cell.style.borderRight = (c === N-1) ? 'none' : (puzzle.regions[i+1] !== puzzle.regions[i] ? thick : thin);
+      cell.style.borderBottom = (r === N-1) ? 'none' : (puzzle.regions[i+N] !== puzzle.regions[i] ? thick : thin);
+      if (ap.has(i)){
+        var img = document.createElement('img');
+        img.src = PRINCESS_IMG; img.alt = ''; img.draggable = false;
+        cell.appendChild(img);
+        if (i === puzzle.given){
+          var badge = document.createElement('div');
+          badge.className = 'given-badge'; badge.textContent = '★';
+          cell.appendChild(badge);
+        }
+      } else if (elim.has(i)){
+        var mark = document.createElement('div');
+        mark.className = 'mark';
+        mark.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="3.5" stroke-linecap="round"><path d="M5 5 L19 19 M19 5 L5 19"/></svg>';
+        cell.appendChild(mark);
       } else {
-        cell.classList.add('empty');
-        cell.innerHTML = '<div class="hole"></div>';
+        var hole = document.createElement('div');
+        hole.className = 'hole';
+        cell.appendChild(hole);
       }
-      cell.addEventListener('click', function(){ onCell(i); });
+      cell.addEventListener('click', function(){ onCell(i, cell); });
       boardEl.appendChild(cell);
     })(i);
   }
-}
-function buildTray(){
-  trayEl.innerHTML = '';
-  PRINCESSES.forEach(function(p, v){
-    var btn = document.createElement('button');
-    btn.className = 'trayBtn'; btn.id = 'tray-' + v;
-    btn.setAttribute('aria-label', 'princess ' + (v + 1));
-    btn.innerHTML = '<img src="assets/img/' + p.img + '" alt="" draggable="false">';
-    btn.addEventListener('click', function(){ onTray(v); });
-    trayEl.appendChild(btn);
-  });
-  var hint = document.createElement('button');
-  hint.id = 'hintBtn'; hint.setAttribute('aria-label', 'Hint');
-  hint.innerHTML = sparkleSVG();
-  hint.addEventListener('click', onHint);
-  trayEl.appendChild(hint);
-}
-
-function currentGrid(){
-  var g = [];
-  for (var i = 0; i < 16; i++) g[i] = given[i] ? puzzle[i] : placed[i];
-  return g;
-}
-function clearMarks(){
-  for (var i = 0; i < 16; i++){
-    var cell = document.getElementById('cell-' + i);
-    cell.classList.remove('selected', 'related');
+  /* progress dots: one per princess still to place */
+  dotsEl.innerHTML = '';
+  for (var d = 0; d < N; d++){
+    var dot = document.createElement('div');
+    dot.className = 'dot' + (d < ap.size ? ' done' : '');
+    dotsEl.appendChild(dot);
   }
-  for (var v = 0; v < 4; v++) document.getElementById('tray-' + v).classList.remove('picked');
+  document.getElementById('solvedCount').textContent = solved;
+  document.getElementById('levelStars').textContent = '★'.repeat(level);
 }
-function markSelection(){
-  clearMarks();
-  if (selected < 0) return;
-  var r = Math.floor(selected / 4), c = selected % 4;
-  document.getElementById('cell-' + selected).classList.add('selected');
-  peers(r, c).forEach(function(p){
-    document.getElementById('cell-' + p).classList.add('related');
-  });
-  if (picked >= 0) document.getElementById('tray-' + picked).classList.add('picked');
-}
-
-function onCell(i){
-  if (locked || given[i] || placed[i] >= 0) return;
-  if (selected === i && picked >= 0){
-    /* Tapping the selected cell again with a princess picked: try placing her. */
-    tryPlace(i, picked);
+function onCell(i, cell){
+  if (locked) return;
+  if (i === puzzle.given) return;               /* given princess stays put */
+  if (placed.has(i)){                            /* tap again to take her back */
+    placed.delete(i);
+    sndPop();
+    render();
     return;
   }
-  selected = (selected === i) ? -1 : i;
-  sndPop();
-  markSelection();
-  if (selected >= 0 && picked >= 0) tryPlace(selected, picked);
-}
-function onTray(v){
-  if (locked) return;
-  picked = (picked === v) ? -1 : v;
-  sndPop();
-  markSelection();
-  if (picked >= 0 && selected >= 0) tryPlace(selected, picked);
-}
-function tryPlace(i, v){
-  if (given[i] || placed[i] >= 0) return;
-  var cell = document.getElementById('cell-' + i);
-  if (v === solution[i]){
-    placed[i] = v;
-    cell.classList.remove('empty');
-    cell.classList.add('justPlaced');
-    cell.innerHTML = '<img src="assets/img/' + PRINCESSES[v].img + '" alt="" draggable="false">';
-    sndGood();
-    selected = -1; picked = -1;
-    markSelection();
-    setTimeout(function(){ cell.classList.remove('justPlaced'); }, 400);
-    if (placed.filter(function(p){ return p >= 0; }).length + given.filter(Boolean).length === 16){
-      setTimeout(win, 450);
-    }
-  } else {
-    sndBad();
+  if (!isSolutionCell(i)){                       /* wrong square: bounce back */
     cell.classList.add('shake', 'shakeBad');
+    sndBad();
     setTimeout(function(){ cell.classList.remove('shake', 'shakeBad'); }, 450);
+    return;
   }
+  placed.add(i);
+  sndGood();
+  render();
+  if (allPlaced().size === puzzle.N) setTimeout(win, 420);
 }
-function onHint(){
-  if (locked) return;
-  var g = currentGrid();
-  for (var i = 0; i < 16; i++){
-    if (g[i] === -1 && candidates(g, i).length === 1){
-      var cell = document.getElementById('cell-' + i);
-      cell.classList.remove('hintPulse'); void cell.offsetWidth; cell.classList.add('hintPulse');
-      selected = i; markSelection();
-      sndHint();
-      return;
+function newGame(){
+  puzzle = genPuzzle(LEVELS[level].n);
+  colors = assignColors(puzzle.N, puzzle.regions);
+  placed = new Set();
+  locked = false;
+  render();
+}
+function hint(){
+  if (locked || !puzzle) return;
+  var N = puzzle.N;
+  var ap = allPlaced();
+  var elim = computeEliminated(N, puzzle.regions, ap);
+  var target = -1;
+  /* Prefer a forced cell: the only candidate left in its row, column, or region. */
+  function scanUnit(cells){
+    if (target !== -1) return;
+    if (cells.some(function(i){ return ap.has(i); })) return;
+    var cands = cells.filter(function(i){ return !elim.has(i); });
+    if (cands.length === 1) target = cands[0];
+  }
+  for (var r = 0; r < N && target === -1; r++){
+    var row = []; for (var c = 0; c < N; c++) row.push(r*N + c);
+    scanUnit(row);
+  }
+  for (var c2 = 0; c2 < N && target === -1; c2++){
+    var col = []; for (var r2 = 0; r2 < N; r2++) col.push(r2*N + c2);
+    scanUnit(col);
+  }
+  for (var g = 0; g < N && target === -1; g++){
+    var reg = []; for (var i = 0; i < N*N; i++) if (puzzle.regions[i] === g) reg.push(i);
+    scanUnit(reg);
+  }
+  if (target === -1){
+    /* Fall back to any empty square that holds a princess in the solution. */
+    for (var i2 = 0; i2 < N*N; i2++){
+      if (!ap.has(i2) && !elim.has(i2) && isSolutionCell(i2)){ target = i2; break; }
     }
   }
-  /* No single-candidate cell (shouldn't happen): pulse any empty cell. */
-  for (var j = 0; j < 16; j++){
-    if (g[j] === -1){
-      var c2 = document.getElementById('cell-' + j);
-      c2.classList.remove('hintPulse'); void c2.offsetWidth; c2.classList.add('hintPulse');
-      selected = j; markSelection();
-      sndHint();
-      return;
-    }
+  if (target === -1) return;
+  sndHint();
+  var cells = boardEl.children;
+  if (cells[target]){
+    cells[target].classList.add('hintPulse');
+    setTimeout(function(){ cells[target].classList.remove('hintPulse'); }, 3400);
   }
 }
-
 function win(){
   locked = true;
   solved++;
-  try { localStorage.setItem('sudokuSolved', String(solved)); } catch(e) {}
-  renderSolved();
+  try { localStorage.setItem('ppSolved', String(solved)); } catch(e) {}
+  document.getElementById('solvedCount').textContent = solved;
   sndWin();
-  document.getElementById('winOverlay').classList.add('show');
-  confetti();
+  confettiBurst();
+  setTimeout(function(){ document.getElementById('winOverlay').classList.add('show'); }, 550);
 }
-function confetti(){
-  var colors = ['#ffd94d','#ff8fb5','#4da6ff','#3fbf6f','#a06bff','#ff5a5a'];
-  for (var i = 0; i < 42; i++){
-    (function(i){
-      var c = document.createElement('div');
-      c.className = 'confetti';
-      var size = 8 + Math.random() * 8;
-      c.style.cssText = 'left:' + (Math.random()*100) + 'vw;width:' + size + 'px;height:' + (size*.6) + 'px;background:' + colors[i % colors.length] + ';';
-      document.body.appendChild(c);
-      var fall = c.animate(
-        [{ transform:'translateY(0) rotate(0deg)', opacity:1 },
-         { transform:'translateY(105vh) rotate(' + (360 + Math.random()*360) + 'deg)', opacity:.9 }],
-        { duration: 1600 + Math.random()*1200, delay: Math.random()*500, easing:'cubic-bezier(.3,.6,.6,1)' });
-      fall.onfinish = function(){ c.remove(); };
-    })(i);
+function confettiBurst(){
+  var cv = document.getElementById('confetti');
+  cv.style.display = 'block';
+  cv.width = innerWidth; cv.height = innerHeight;
+  var ctx = cv.getContext('2d');
+  var cols = ['#f472b6','#a78bfa','#fbbf24','#34d399','#60a5fa','#fb923c'];
+  var ps = [];
+  for (var i = 0; i < 130; i++){
+    ps.push({ x:innerWidth/2, y:innerHeight/2, vx:(Math.random()-.5)*15, vy:(Math.random()-.9)*14,
+              s:5+Math.random()*7, c:cols[i%cols.length], r:Math.random()*Math.PI, vr:(Math.random()-.5)*.3 });
   }
+  var t0 = performance.now();
+  (function frame(t){
+    var el = t - t0;
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    ps.forEach(function(p){
+      p.x += p.vx; p.y += p.vy; p.vy += .32; p.r += p.vr;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r);
+      ctx.fillStyle = p.c; ctx.fillRect(-p.s/2, -p.s/2, p.s, p.s*.6);
+      ctx.restore();
+    });
+    if (el < 2200) requestAnimationFrame(frame);
+    else { ctx.clearRect(0, 0, cv.width, cv.height); cv.style.display = 'none'; }
+  })(t0);
 }
 
-function newGame(){
-  var gen = generatePuzzle();
-  puzzle = gen.puzzle; solution = gen.solution;
-  given = []; placed = [];
-  for (var i = 0; i < 16; i++){
-    given[i] = puzzle[i] >= 0;
-    placed[i] = -1;
-  }
-  selected = -1; picked = -1; locked = false;
-  document.getElementById('winOverlay').classList.remove('show');
-  buildBoard(); buildTray();
+/* ================= level select ================= */
+var MINI = {
+  1: ['P','P','B','B', 'P','P','B','B', 'Y','Y','G','G', 'Y','Y','G','G'],
+  2: ['P','P','B','B','O', 'P','P','B','O','O', 'Y','Y','B','G','O', 'Y','Y','G','G','G', 'Y','Y','G','G','G'],
+  3: ['P','P','P','B','B','O', 'P','P','B','B','O','O', 'Y','Y','B','O','O','V', 'Y','Y','G','G','V','V', 'Y','G','G','G','V','V', 'G','G','G','G','V','V']
+};
+var MINI_COLORS = { P:'#ffc7dd', B:'#bcd8ff', O:'#ffd9a8', Y:'#ffe9a3', G:'#c4f0c8', V:'#e3ccff' };
+function buildLevelCards(){
+  var row = document.getElementById('levelRow');
+  row.innerHTML = '';
+  [1,2,3].forEach(function(lv){
+    var card = document.createElement('div');
+    card.className = 'level-card' + (lv === level ? ' current' : '');
+    var n = LEVELS[lv].n;
+    var grid = document.createElement('div');
+    grid.className = 'mini-grid';
+    grid.style.gridTemplateColumns = 'repeat(' + n + ', 1fr)';
+    MINI[lv].forEach(function(k){
+      var d = document.createElement('div');
+      d.style.background = MINI_COLORS[k];
+      grid.appendChild(d);
+    });
+    var stars = document.createElement('div');
+    stars.className = 'stars';
+    stars.textContent = '★'.repeat(lv);
+    card.appendChild(grid); card.appendChild(stars);
+    card.addEventListener('click', function(){
+      level = lv;
+      try { localStorage.setItem('ppLevel', String(lv)); } catch(e) {}
+      document.getElementById('levelOverlay').classList.remove('show');
+      newGame();
+    });
+    row.appendChild(card);
+  });
 }
-
-document.getElementById('soundBtn').addEventListener('click', function(){
-  soundOn = !soundOn;
-  try { localStorage.setItem('sudokuSound', soundOn ? '1' : '0'); } catch(e) {}
-  this.innerHTML = speakerSVG(soundOn);
-  if (soundOn) sndPop();
+document.getElementById('levelBtn').addEventListener('click', function(){
+  buildLevelCards();
+  document.getElementById('levelOverlay').classList.add('show');
 });
-document.getElementById('newBtn').addEventListener('click', function(){ sndPop(); newGame(); });
-document.getElementById('againBtn').addEventListener('click', function(){ sndPop(); newGame(); });
+document.getElementById('levelClose').addEventListener('click', function(){
+  document.getElementById('levelOverlay').classList.remove('show');
+});
+document.getElementById('againBtn').addEventListener('click', function(){
+  document.getElementById('winOverlay').classList.remove('show');
+  newGame();
+});
+document.getElementById('newBtn').addEventListener('click', function(){ newGame(); });
+document.getElementById('hintBtn').addEventListener('click', hint);
+
+/* sound toggle */
+var SOUND_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4V5z" fill="#7c3aed" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
+var SOUND_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4V5z" fill="#a78bfa" stroke="none"/><path d="M22 9l-6 6M16 9l6 6"/></svg>';
+var soundBtn = document.getElementById('soundBtn');
+function paintSound(){ soundBtn.innerHTML = soundOn ? SOUND_ON : SOUND_OFF; }
+soundBtn.addEventListener('click', function(){
+  soundOn = !soundOn;
+  try { localStorage.setItem('ppSound', soundOn ? '1' : '0'); } catch(e) {}
+  paintSound();
+  if (soundOn) sndGood();
+});
+paintSound();
+newGame();
+
+/* Show the level picker on first ever visit so she can pick a size. */
+try {
+  if (!localStorage.getItem('ppLevel')){
+    buildLevelCards();
+    document.getElementById('levelOverlay').classList.add('show');
+  }
+} catch(e) {}
 
 if ('serviceWorker' in navigator){
   navigator.serviceWorker.register('/kid-games/sw.js').catch(function(){});
 }
-newGame();
 </script>
 </body>
 </html>

@@ -86,6 +86,16 @@
   }
   .hint-btn:active { transform:scale(.92); }
   .hint-btn svg { width:44px; height:44px; }
+  .check-btn {
+    width:78px; height:78px; border-radius:50%; border:3px solid #86efac; cursor:pointer;
+    background:linear-gradient(180deg,#bbf7d0,#22c55e);
+    box-shadow:0 6px 16px rgba(34,197,94,.45); display:flex; align-items:center; justify-content:center;
+  }
+  .check-btn:active { transform:scale(.92); }
+  .check-btn svg { width:44px; height:44px; }
+  .check-btn.ready { animation:readyPulse 1.2s ease-in-out infinite; }
+  @keyframes readyPulse { 0%,100% { box-shadow:0 6px 16px rgba(34,197,94,.45); transform:scale(1); } 50% { box-shadow:0 6px 24px rgba(34,197,94,.8); transform:scale(1.07); } }
+  .progress-dots.shake { animation:shake .4s; }
   .progress-dots { display:flex; gap:8px; align-items:center; }
   .progress-dots .dot {
     width:16px; height:16px; border-radius:50%; background:rgba(255,255,255,.9);
@@ -115,8 +125,7 @@
   .round-btn:active { transform:scale(.92); }
   .round-btn svg { width:44px; height:44px; }
   /* level select */
-  .level-title { font-size:26px; color:#7c3aed; font-weight:800; margin-bottom:4px; }
-  .level-sub { font-size:15px; color:#a78bfa; margin-bottom:18px; }
+  .level-title { font-size:26px; color:#7c3aed; font-weight:800; margin-bottom:18px; }
   .level-row { display:flex; gap:14px; justify-content:center; }
   .level-card {
     flex:1; background:#fff; border:3px solid #e9d5ff; border-radius:20px; padding:16px 8px 12px;
@@ -164,12 +173,14 @@
 
 <main>
   <div id="board"></div>
+  <div class="progress-dots" id="dots"></div>
   <div class="bottombar">
-    <div class="progress-dots" id="dots"></div>
     <button class="hint-btn" id="hintBtn" aria-label="Hint">
       <svg viewBox="0 0 24 24"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z" fill="#fff"/><path d="M19 15l.9 3.1L23 19l-3.1.9L19 23l-.9-3.1L15 19l3.1-.9L19 15z" fill="#fff" opacity=".85"/></svg>
     </button>
-    <div class="progress-dots" style="visibility:hidden" aria-hidden="true"><div class="dot"></div></div>
+    <button class="check-btn" id="checkBtn" aria-label="Check my work">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5 L9.5 18 L20 6.5"/></svg>
+    </button>
   </div>
 </main>
 
@@ -177,7 +188,6 @@
 <div class="overlay" id="levelOverlay">
   <div class="card">
     <div class="level-title">👑</div>
-    <div class="level-sub">Pick a puzzle size!</div>
     <div class="level-row" id="levelRow"></div>
     <button class="close-x" id="levelClose" aria-label="Close">✕</button>
   </div>
@@ -335,19 +345,11 @@ function elimSolvable(N, regions, givens){
 }
 /* Greedy color assignment so neighboring regions never share a color. */
 function assignColors(N, regions){
-  var adj = Array.from({length:N}, function(){ return new Set(); });
-  for (var r = 0; r < N; r++) for (var c = 0; c < N; c++){
-    var id = regions[r*N + c];
-    if (c+1 < N && regions[r*N+c+1] !== id){ adj[id].add(regions[r*N+c+1]); adj[regions[r*N+c+1]].add(id); }
-    if (r+1 < N && regions[(r+1)*N+c] !== id){ adj[id].add(regions[(r+1)*N+c]); adj[regions[(r+1)*N+c]].add(id); }
-  }
+  /* Every region gets its OWN color — never reused — so "one princess per
+     color" reads unambiguously. The palette holds 7 colors, boards max at 6. */
   var pal = shuffled(PALETTE);
-  var colorOf = new Array(N).fill(null);
-  for (var g = 0; g < N; g++){
-    var used = new Set();
-    adj[g].forEach(function(j){ if (colorOf[j]) used.add(colorOf[j]); });
-    colorOf[g] = pal.find(function(col){ return !used.has(col); }) || pal[g % pal.length];
-  }
+  var colorOf = new Array(N);
+  for (var g = 0; g < N; g++) colorOf[g] = pal[g];
   return colorOf;
 }
 /* Hand-built fallbacks (verified unique + elimination-solvable in testing). */
@@ -402,12 +404,17 @@ function tone(freq, dur, type, vol, when){
 function sndGood(){ tone(880, .18, 'sine', .16); tone(1318, .24, 'sine', .14, .07); }
 function sndBad(){ tone(196, .22, 'triangle', .1); }
 function sndPop(){ tone(520, .09, 'sine', .12); }
+function sndTick(){ tone(700, .07, 'sine', .1); }
 function sndHint(){ tone(1046, .14, 'sine', .13); tone(1568, .2, 'sine', .11, .09); }
 function sndWin(){ [523,659,784,1046,1318].forEach(function(f,i){ tone(f,.3,'sine',.15,i*.11); }); }
 
 /* ================= game state ================= */
 var level = 1, puzzle = null, colors = null;
 var placed = new Set();   /* player-placed princess cells (excludes the given) */
+var xMarks = new Set();   /* her own elimination notes: X marks she placed herself */
+/* Double-tap detection uses timestamps (no timers), so every tap answers instantly. */
+var tapAt = {}, xAt = {}, clearedAt = {}, placedAt = {};
+var DBL_MS = 350, DEBOUNCE_MS = 120;
 var locked = false;
 var solved = 0;
 try {
@@ -435,7 +442,6 @@ function render(){
   boardEl.style.gridTemplateColumns = 'repeat(' + N + ', 1fr)';
   boardEl.innerHTML = '';
   var ap = allPlaced();
-  var elim = computeEliminated(N, puzzle.regions, ap);
   for (var i = 0; i < N*N; i++){
     (function(i){
       var r = (i/N)|0, c = i%N;
@@ -456,7 +462,7 @@ function render(){
           badge.className = 'given-badge'; badge.textContent = '★';
           cell.appendChild(badge);
         }
-      } else if (elim.has(i)){
+      } else if (xMarks.has(i)){
         var mark = document.createElement('div');
         mark.className = 'mark';
         mark.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="3.5" stroke-linecap="round"><path d="M5 5 L19 19 M19 5 L5 19"/></svg>';
@@ -474,36 +480,60 @@ function render(){
   dotsEl.innerHTML = '';
   for (var d = 0; d < N; d++){
     var dot = document.createElement('div');
-    dot.className = 'dot' + (d < ap.size ? ' done' : '');
+    dot.className = 'dot' + (d < Math.min(ap.size, N) ? ' done' : '');
     dotsEl.appendChild(dot);
   }
   document.getElementById('solvedCount').textContent = solved;
   document.getElementById('levelStars').textContent = '★'.repeat(level);
+  updateCheckPulse();
+}
+/* One tap = X note, two quick taps = princess. Tapping an X clears it
+   (unless it was just placed — that's the second tap of a double-tap);
+   tapping a princess takes her back. Mistakes are allowed: nothing here
+   checks the solution. She checks her own work with the green ✓ button. */
+function tapCell(i, now){
+  if (i === puzzle.given) return 'given';
+  var last = tapAt[i] || 0;
+  tapAt[i] = now;
+  if (now - last < DEBOUNCE_MS) return 'ignore';
+  if (placed.has(i)){
+    if (now - (placedAt[i] || 0) < 300) return 'ignore';
+    placed.delete(i);
+    clearedAt[i] = now;
+    return 'remove';
+  }
+  if (xMarks.has(i)){
+    if (now - (xAt[i] || 0) < DBL_MS){
+      xMarks.delete(i);
+      placed.add(i); placedAt[i] = now;
+      return 'place';
+    }
+    xMarks.delete(i);
+    clearedAt[i] = now;
+    return 'clearX';
+  }
+  if (now - (clearedAt[i] || 0) < DBL_MS){
+    placed.add(i); placedAt[i] = now;
+    return 'place';
+  }
+  xMarks.add(i); xAt[i] = now;
+  return 'x';
 }
 function onCell(i, cell){
   if (locked) return;
-  if (i === puzzle.given) return;               /* given princess stays put */
-  if (placed.has(i)){                            /* tap again to take her back */
-    placed.delete(i);
-    sndPop();
-    render();
-    return;
-  }
-  if (!isSolutionCell(i)){                       /* wrong square: bounce back */
-    cell.classList.add('shake', 'shakeBad');
-    sndBad();
-    setTimeout(function(){ cell.classList.remove('shake', 'shakeBad'); }, 450);
-    return;
-  }
-  placed.add(i);
-  sndGood();
+  var action = tapCell(i, Date.now());
+  if (action === 'given' || action === 'ignore') return;
+  if (action === 'place') sndGood();
+  else if (action === 'remove') sndPop();
+  else sndTick();
   render();
-  if (allPlaced().size === puzzle.N) setTimeout(win, 420);
 }
 function newGame(){
   puzzle = genPuzzle(LEVELS[level].n);
   colors = assignColors(puzzle.N, puzzle.regions);
   placed = new Set();
+  xMarks = new Set();
+  tapAt = {}; xAt = {}; clearedAt = {}; placedAt = {};
   locked = false;
   render();
 }
@@ -511,40 +541,60 @@ function hint(){
   if (locked || !puzzle) return;
   var N = puzzle.N;
   var ap = allPlaced();
-  var elim = computeEliminated(N, puzzle.regions, ap);
-  var target = -1;
-  /* Prefer a forced cell: the only candidate left in its row, column, or region. */
-  function scanUnit(cells){
-    if (target !== -1) return;
-    if (cells.some(function(i){ return ap.has(i); })) return;
-    var cands = cells.filter(function(i){ return !elim.has(i); });
-    if (cands.length === 1) target = cands[0];
-  }
-  for (var r = 0; r < N && target === -1; r++){
-    var row = []; for (var c = 0; c < N; c++) row.push(r*N + c);
-    scanUnit(row);
-  }
-  for (var c2 = 0; c2 < N && target === -1; c2++){
-    var col = []; for (var r2 = 0; r2 < N; r2++) col.push(r2*N + c2);
-    scanUnit(col);
-  }
-  for (var g = 0; g < N && target === -1; g++){
-    var reg = []; for (var i = 0; i < N*N; i++) if (puzzle.regions[i] === g) reg.push(i);
-    scanUnit(reg);
-  }
-  if (target === -1){
-    /* Fall back to any empty square that holds a princess in the solution. */
-    for (var i2 = 0; i2 < N*N; i2++){
-      if (!ap.has(i2) && !elim.has(i2) && isSolutionCell(i2)){ target = i2; break; }
-    }
-  }
-  if (target === -1) return;
+  /* Pulse a square that holds a princess in the solution and has none yet,
+     preferring one she hasn't X'd. Never misleading, even with wrong
+     princesses on the board. */
+  var cands = [];
+  for (var i = 0; i < N*N; i++) if (!ap.has(i) && isSolutionCell(i)) cands.push(i);
+  var open = cands.filter(function(i){ return !xMarks.has(i); });
+  var pool = open.length ? open : cands;
+  if (!pool.length) return;
+  var target = pool[Math.floor(Math.random() * pool.length)];
   sndHint();
   var cells = boardEl.children;
   if (cells[target]){
     cells[target].classList.add('hintPulse');
     setTimeout(function(){ cells[target].classList.remove('hintPulse'); }, 3400);
   }
+}
+/* Pure rule check: exactly N princesses, none sharing a row, column, or
+   region, none touching (even diagonally). With a unique solution, a
+   rule-clean full board IS the solution — no peeking at the answer. */
+function validateBoard(N, regions, cells){
+  var bad = new Set();
+  for (var a = 0; a < cells.length; a++) for (var b = a+1; b < cells.length; b++){
+    var i = cells[a], j = cells[b];
+    var ri = (i/N)|0, ci = i%N, rj = (j/N)|0, cj = j%N;
+    if (ri === rj || ci === cj || regions[i] === regions[j] ||
+        (Math.abs(ri-rj) <= 1 && Math.abs(ci-cj) <= 1)){ bad.add(i); bad.add(j); }
+  }
+  return { ok: cells.length === N && bad.size === 0, bad: Array.from(bad), count: cells.length };
+}
+function updateCheckPulse(){
+  var btn = document.getElementById('checkBtn');
+  if (!btn || !puzzle) return;
+  if (allPlaced().size >= puzzle.N) btn.classList.add('ready');
+  else btn.classList.remove('ready');
+}
+function checkBoard(){
+  if (locked || !puzzle) return;
+  var res = validateBoard(puzzle.N, puzzle.regions, Array.from(allPlaced()));
+  if (res.count < puzzle.N){
+    /* Not finished yet: wiggle the dots, gentle tone, no penalty. */
+    dotsEl.classList.remove('shake'); void dotsEl.offsetWidth; dotsEl.classList.add('shake');
+    tone(440, .15, 'sine', .1);
+    setTimeout(function(){ dotsEl.classList.remove('shake'); }, 450);
+    return;
+  }
+  if (res.ok){ win(); return; }
+  /* Something breaks a rule: ring + shake the princesses involved. */
+  sndBad();
+  res.bad.forEach(function(i){
+    var cell = boardEl.children[i];
+    if (!cell) return;
+    cell.classList.add('shake', 'shakeBad');
+    setTimeout(function(){ cell.classList.remove('shake', 'shakeBad'); }, 900);
+  });
 }
 function win(){
   locked = true;
@@ -629,6 +679,7 @@ document.getElementById('againBtn').addEventListener('click', function(){
 });
 document.getElementById('newBtn').addEventListener('click', function(){ newGame(); });
 document.getElementById('hintBtn').addEventListener('click', hint);
+document.getElementById('checkBtn').addEventListener('click', checkBoard);
 
 /* sound toggle */
 var SOUND_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4V5z" fill="#7c3aed" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>';

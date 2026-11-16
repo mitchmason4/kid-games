@@ -2,7 +2,7 @@
    run offline (e.g. on a plane) after the first visit with internet.
    Strategy: stale-while-revalidate — serve the cached copy instantly,
    refresh it in the background, fall back to network when uncached. */
-var CACHE = 'kid-games-v11';
+var CACHE = 'kid-games-v12';
 var CORE = [
   '/kid-games/',
   '/kid-games/memory/',
@@ -71,6 +71,13 @@ var CORE = [
   '/kid-games/sudoku/assets/img/princess-09.jpg',
   '/kid-games/sudoku/assets/img/princess-12.jpg',
   '/kid-games/sudoku/assets/img/win.jpg',
+  '/kid-games/hide-and-seek/',
+  '/kid-games/hide-and-seek/assets/img/scene.jpg',
+  '/kid-games/hide-and-seek/assets/img/princess-01.jpg',
+  '/kid-games/hide-and-seek/assets/img/princess-04.jpg',
+  '/kid-games/hide-and-seek/assets/img/princess-07.jpg',
+  '/kid-games/hide-and-seek/assets/img/princess-09.jpg',
+  '/kid-games/hide-and-seek/assets/img/win.jpg',
   '/kid-games/icon-bubble.png',
   '/kid-games/icon-match.png',
   '/kid-games/icon-dressup.png',
@@ -78,7 +85,8 @@ var CORE = [
   '/kid-games/icon-animals.png',
   '/kid-games/icon-royal.png',
   '/kid-games/icon-guess.png',
-  '/kid-games/icon-sudoku.png'
+  '/kid-games/icon-sudoku.png',
+  '/kid-games/icon-hide.png'
 ];
 
 self.addEventListener('install', function (e) {

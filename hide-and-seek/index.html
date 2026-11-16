@@ -11,11 +11,14 @@
 <title>Princess Hide &amp; Seek 👑</title>
 <!--
   Princess Hide & Seek — a wordless hide-and-seek for a pre-reader.
-  A princess waves hello, then hides behind one of six things in a
-  big garden picture (tower, tree, fountain, rose bush, tent, mushroom
-  cottage). Emi taps things to find her. A wrong tap wiggles with a
-  soft boop; every third miss the hiding place sparkles as a hint.
-  Finding her pops her out with sparkles, then the usual reward.
+  A princess waves hello, then hides behind ONE of 37 things across
+  three big pictures (garden, castle, forest). Emi flips between the
+  pictures with the thumbnail bar and taps things to find her.
+  8 other spots hide surprise animal friends (from Animal Noises):
+  they pop out with their real sound and stay as a little badge, but
+  only the princess wins. Tapped empty spots get a faint star so she
+  can keep track. Every third miss, a hint sparkles: the hiding place
+  itself, or the picture tab she is hiding in.
   No words anywhere except the "Good Job Emi! Dada" reward.
   All pictures are AI-generated cartoon illustrations.
 -->
@@ -64,12 +67,14 @@
   }
   .iconBtn:active { transform:translateY(2px); box-shadow:0 1px 0 rgba(124,58,237,.35); }
   .iconBtn svg { width:30px; height:30px; }
-  /* Stage: the big garden picture, fitted to the screen by JS. */
-  #stage { flex:1; min-height:0; display:flex; align-items:center; justify-content:center; padding:0 6px 8px; }
+  /* Stage: the big picture, fitted to the screen by JS. */
+  #stage { flex:1; min-height:0; display:flex; align-items:center; justify-content:center; padding:0 6px 4px; }
   #sceneWrap { position:relative; border-radius:22px; overflow:hidden; border:4px solid #fff;
     box-shadow:0 8px 24px rgba(91,42,134,.25); background:#bfe3ff; }
   #sceneWrap img.scene { width:100%; height:100%; display:block; pointer-events:none; }
-  /* Tappable hiding places: invisible buttons over the picture. */
+  /* Tappable hiding places: invisible buttons over the picture.
+     Spots later in a scene's list paint above earlier ones, so small
+     spots sitting on big ones (birdhouse on the oak) win the tap. */
   .spot {
     position:absolute; border:none; background:transparent; cursor:pointer; padding:0;
     border-radius:24px; z-index:2;
@@ -83,21 +88,36 @@
     0% { border-color:rgba(255,255,255,.95); transform:scale(.55); opacity:1; }
     100% { border-color:rgba(255,255,255,0); transform:scale(1.1); opacity:0; }
   }
+  /* Faint star on a checked empty spot, so she can keep track. */
+  .spot.checked::before {
+    content:'★'; position:absolute; left:50%; top:50%; z-index:3;
+    font-size:20px; line-height:1; color:rgba(255,255,255,.75);
+    text-shadow:0 1px 4px rgba(0,0,0,.35); pointer-events:none;
+    transform:translate(-50%,-50%);
+  }
+  /* Hint sparkle on the hiding place (overrides the checked star). */
   .spot.hint::before {
-    content:'✨'; position:absolute; left:50%; top:50%; z-index:3;
-    font-size:46px; pointer-events:none; line-height:1;
+    content:'✨'; font-size:46px; color:inherit; text-shadow:none; opacity:1;
     animation:hintPulse .6s ease-in-out infinite;
   }
   @keyframes hintPulse {
     0%, 100% { opacity:.35; transform:translate(-50%,-50%) scale(.8); }
     50% { opacity:1; transform:translate(-50%,-50%) scale(1.15); }
   }
-  /* The princess popping out from her hiding place. */
+  /* A found friend stays as a little badge on its spot. */
+  .friendBadge {
+    position:absolute; top:-9px; right:-9px; width:32px; height:32px; z-index:4;
+    border-radius:50%; border:3px solid #fff; overflow:hidden; pointer-events:none;
+    box-shadow:0 3px 8px rgba(0,0,0,.3); background:#fff;
+  }
+  .friendBadge img { width:100%; height:100%; object-fit:cover; display:block; }
+  /* The princess (big, gold) or a friend (smaller, white) popping out. */
   #peek {
     position:absolute; width:48%; aspect-ratio:1/1; border-radius:50%; overflow:hidden;
     border:5px solid #ffd94d; box-shadow:0 10px 24px rgba(91,42,134,.4);
     transform:translate(-50%,-50%) scale(0); pointer-events:none; z-index:5; background:#fff;
   }
+  #peek.friend { width:38%; border-color:#fff; box-shadow:0 10px 24px rgba(46,125,50,.45); }
   #peek img { width:100%; height:100%; object-fit:cover; display:block; }
   #peek.show { animation:peekPop .55s cubic-bezier(.34,1.56,.64,1) forwards, peekWiggle 1s ease-in-out .55s infinite; }
   @keyframes peekPop {
@@ -130,6 +150,23 @@
   }
   #introPrincess img { width:100%; height:100%; object-fit:cover; display:block; }
   @keyframes introBounce { 0%, 100% { transform:translateY(0) scale(1); } 50% { transform:translateY(-10px) scale(1.03); } }
+  /* Picture bar: flip between the three scenes. */
+  #sceneBar {
+    display:flex; justify-content:center; gap:14px;
+    padding:4px 10px max(10px, env(safe-area-inset-bottom));
+  }
+  .sceneBtn {
+    width:64px; height:64px; padding:0; cursor:pointer; overflow:hidden;
+    border-radius:18px; border:3px solid #fff; background:#fff;
+    box-shadow:0 3px 0 rgba(124,58,237,.3), 0 6px 14px rgba(91,42,134,.15);
+  }
+  .sceneBtn img { width:100%; height:100%; object-fit:cover; display:block; pointer-events:none; }
+  .sceneBtn.active { border-color:#ffd94d; transform:scale(1.08); }
+  .sceneBtn.hintTab { animation:tabPulse .6s ease-in-out infinite; }
+  @keyframes tabPulse {
+    0%, 100% { box-shadow:0 3px 0 rgba(124,58,237,.3), 0 0 0 0 rgba(255,217,77,.85); }
+    50% { box-shadow:0 3px 0 rgba(124,58,237,.3), 0 0 0 8px rgba(255,217,77,0); }
+  }
   /* Win overlay */
   #winOverlay {
     position:fixed; inset:0; z-index:20; display:none; flex-direction:column;
@@ -162,7 +199,7 @@
 </header>
 <div id="stage">
   <div id="sceneWrap">
-    <img class="scene" src="assets/img/scene.jpg" alt="" draggable="false">
+    <img class="scene" id="sceneImg" src="assets/img/scene.jpg" alt="" draggable="false">
     <div id="peek"><img id="peekImg" src="assets/img/princess-01.jpg" alt=""></div>
     <div id="intro">
       <div class="stars">✨⭐✨</div>
@@ -171,22 +208,72 @@
     </div>
   </div>
 </div>
+<div id="sceneBar"></div>
 <div id="winOverlay">
   <div class="winPic"><img src="assets/img/win.jpg" alt=""></div>
   <div class="reward">Good Job Emi! 💕 Dada</div>
   <button id="againBtn" aria-label="play again">⭐</button>
 </div>
 <script>
-/* Hiding places: % of the garden picture (measured from the artwork). */
-var SPOTS = [
-  { id:'tower',    x:40.5, y:2.5,  w:17.5, h:37.5 },
-  { id:'tree',     x:0,    y:16,   w:40,   h:27   },
-  { id:'fountain', x:59,   y:29,   w:41,   h:19   },
-  { id:'bush',     x:0,    y:45,   w:47,   h:17   },
-  { id:'tent',     x:52,   y:49.5, w:46,   h:24.5 },
-  { id:'cottage',  x:30,   y:80,   w:36,   h:17   }
+/* Hiding places: % of each picture (measured from the artwork).
+   Forest list order is bottom-to-top paint order: small spots sitting
+   on big ones come later so their taps win (see .spot comment). */
+var SCENES = [
+  { img:'scene.jpg', spots:[
+    { id:'tower',    x:40.5, y:2.5,  w:17.5, h:37.5 },
+    { id:'tree',     x:0,    y:16,   w:40,   h:27   },
+    { id:'fountain', x:59,   y:29,   w:41,   h:19   },
+    { id:'bush',     x:0,    y:45,   w:47,   h:17   },
+    { id:'tent',     x:52,   y:49.5, w:46,   h:24.5 },
+    { id:'cottage',  x:30,   y:80,   w:36,   h:17   }
+  ]},
+  { img:'castle.jpg', spots:[
+    { id:'towerL',    x:4,    y:11.5, w:21,   h:18.5 },
+    { id:'towerR',    x:75,   y:13,   w:22.5, h:17   },
+    { id:'winRoundL', x:24.5, y:33.5, w:15.5, h:9    },
+    { id:'winRoundC', x:41.5, y:33.5, w:17,   h:9    },
+    { id:'winRoundR', x:60.5, y:33.5, w:16,   h:9    },
+    { id:'winArchL',  x:24.5, y:48,   w:15,   h:11.5 },
+    { id:'winArchC',  x:41.5, y:48,   w:17,   h:11.5 },
+    { id:'winArchR',  x:60.5, y:48,   w:15,   h:11.5 },
+    { id:'balcony',   x:20,   y:60,   w:60,   h:7.5  },
+    { id:'door',      x:40.5, y:70.5, w:19.5, h:14.5 },
+    { id:'lantern',   x:26,   y:69,   w:14,   h:9    },
+    { id:'shield',    x:62,   y:69.5, w:15,   h:11.5 },
+    { id:'ivy',       x:2,    y:30,   w:17,   h:51   },
+    { id:'flowersL',  x:0,    y:81.5, w:32,   h:18   },
+    { id:'flowersR',  x:69,   y:81.2, w:31,   h:18.3 }
+  ]},
+  { img:'forest.jpg', spots:[
+    { id:'oak',           x:0,    y:0,    w:58,   h:70   },
+    { id:'pineBack',      x:58,   y:14.3, w:18,   h:43.2 },
+    { id:'pineRight',     x:72,   y:3,    w:28,   h:64   },
+    { id:'flowersBL',     x:0,    y:85.5, w:46.5, h:14.5 },
+    { id:'pond',          x:46.8, y:78.6, w:53.2, h:9.4  },
+    { id:'flowersCenter', x:37.2, y:64,   w:22.2, h:6    },
+    { id:'berryBush',     x:71.3, y:64.6, w:28.7, h:13.4 },
+    { id:'mushrooms',     x:16,   y:62.5, w:16.5, h:8    },
+    { id:'log',           x:14.7, y:70.5, w:35.9, h:8.2  },
+    { id:'rock',          x:2,    y:79.5, w:25.2, h:7.5  },
+    { id:'ferns',         x:58,   y:86.5, w:42,   h:13.5 },
+    { id:'stump',         x:31.3, y:86.2, w:32,   h:7    },
+    { id:'birdhouse',     x:18,   y:33,   w:13,   h:9.5  },
+    { id:'beehive',       x:27,   y:41,   w:14,   h:11   },
+    { id:'hollow',        x:10,   y:53.5, w:14.5, h:8.5  },
+    { id:'lantern',       x:55.5, y:56,   w:12.5, h:11   }
+  ]}
 ];
 var PRINCESSES = ['princess-01.jpg', 'princess-04.jpg', 'princess-07.jpg', 'princess-09.jpg'];
+var ANIMALS = [
+  { img:'cat.jpg',      snd:'cat.mp3' },
+  { img:'dog.jpg',      snd:'dog.mp3' },
+  { img:'duck.jpg',     snd:'duck.mp3' },
+  { img:'frog.jpg',     snd:'frog.mp3' },
+  { img:'horse.jpg',    snd:'horse.mp3' },
+  { img:'lion.jpg',     snd:'lion.mp3' },
+  { img:'elephant.jpg', snd:'elephant.mp3' },
+  { img:'monkey.jpg',   snd:'monkey.mp3' }
+];
 var SCENE_W = 1120, SCENE_H = 2240;
 
 /* ---------- sounds ---------- */
@@ -214,6 +301,14 @@ function sndBoop(){ tone(300, .13, 'sine', 0, .13); tone(210, .17, 'sine', .11, 
 function sndFound(){ [880, 1108, 1318, 1760].forEach(function(f, i){ tone(f, .18, 'sine', i * .09, .17); }); }
 function sndHint(){ tone(1318, .15, 'sine', 0, .12); tone(1760, .2, 'sine', .12, .12); }
 function sndWin(){ [523,659,784,1047,784,1047].forEach(function(f, i){ tone(f, .22, 'triangle', i * .13, .2); }); }
+function playAnimal(aIdx){
+  if (!soundOn) return;
+  try {
+    var a = new Audio('assets/snd/' + ANIMALS[aIdx].snd);
+    var p = a.play();
+    if (p && p.catch) p.catch(function(){});
+  } catch(e) {}
+}
 
 /* ---------- icons ---------- */
 function svgWrap(inner){ return '<svg viewBox="0 0 64 64">' + inner + '</svg>'; }
@@ -242,35 +337,87 @@ window.addEventListener('resize', fitScene);
 window.addEventListener('orientationchange', function(){ setTimeout(fitScene, 60); });
 
 /* ---------- state ---------- */
-var hider = 0, lastHider = -1, spot = 0, lastSpot = -1,
-    locked = true, misses = 0, hintTimer = null;
-var spotBtns = [];
+var sceneIdx = 0, hider = 0, lastHider = -1,
+    hideScene = 0, hideSpot = 0, lastHideKey = '',
+    surpriseMap = {}, tapped = {},
+    locked = true, misses = 0, hintTimer = null, peekTimer = null;
+var spotBtns = [], sceneBtns = [];
 var peekEl = document.getElementById('peek'),
     peekImg = document.getElementById('peekImg'),
     introEl = document.getElementById('intro');
+
+function spotKey(s, i){ return s + ':' + i; }
+function shuffle(arr){
+  for (var i = arr.length - 1; i > 0; i--){
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+  }
+  return arr;
+}
 
 function renderFound(){ document.getElementById('foundNum').textContent = found; }
 renderFound();
 document.getElementById('soundBtn').innerHTML = speakerSVG(soundOn);
 document.getElementById('newBtn').innerHTML = refreshSVG();
 
+function buildSceneBar(){
+  var bar = document.getElementById('sceneBar');
+  bar.innerHTML = ''; sceneBtns = [];
+  SCENES.forEach(function(sc, s){
+    var b = document.createElement('button');
+    b.className = 'sceneBtn'; b.setAttribute('aria-label', 'scene ' + (s + 1));
+    b.innerHTML = '<img src="assets/img/' + sc.img + '" alt="" draggable="false">';
+    b.addEventListener('click', function(){ sndPop(); showScene(s); });
+    bar.appendChild(b);
+    sceneBtns.push(b);
+  });
+}
+buildSceneBar();
+
+function showScene(s){
+  sceneIdx = s;
+  clearTimeout(peekTimer); peekTimer = null;
+  peekEl.classList.remove('show', 'friend');
+  document.getElementById('sceneImg').src = 'assets/img/' + SCENES[s].img;
+  sceneBtns.forEach(function(b, i){ b.classList.toggle('active', i === s); });
+  buildSpots();
+}
+
+function addFriendBadge(btn, aIdx){
+  var badge = document.createElement('div');
+  badge.className = 'friendBadge';
+  badge.innerHTML = '<img src="assets/img/' + ANIMALS[aIdx].img + '" alt="">';
+  btn.appendChild(badge);
+}
+
 function buildSpots(){
   spotBtns.forEach(function(b){ b.remove(); });
   spotBtns = [];
-  SPOTS.forEach(function(sp, i){
+  SCENES[sceneIdx].spots.forEach(function(sp, i){
     var b = document.createElement('button');
     b.className = 'spot'; b.setAttribute('aria-label', sp.id);
     b.style.left = sp.x + '%'; b.style.top = sp.y + '%';
     b.style.width = sp.w + '%'; b.style.height = sp.h + '%';
-    b.addEventListener('click', function(){ onSpot(i, b); });
+    (function(s, idx, btn){ btn.addEventListener('click', function(){ onSpot(s, idx, btn); }); })(sceneIdx, i, b);
+    var k = spotKey(sceneIdx, i);
+    if (tapped[k] === 'empty') b.classList.add('checked');
+    if (tapped[k] === 'friend' && surpriseMap[k] !== undefined) addFriendBadge(b, surpriseMap[k]);
     wrapEl.appendChild(b);
     spotBtns.push(b);
   });
 }
 
-function spotCenter(i){
-  var sp = SPOTS[i];
+function spotCenter(s, i){
+  var sp = SCENES[s].spots[i];
   return { x: sp.x + sp.w / 2, y: sp.y + sp.h / 2 };
+}
+/* Keep the whole round portrait inside the picture. */
+function clampPeek(c, sizePct){
+  var halfX = sizePct / 2, halfY = halfX * (SCENE_W / SCENE_H);
+  return {
+    x: Math.min(100 - halfX, Math.max(halfX, c.x)),
+    y: Math.min(100 - halfY, Math.max(halfY, c.y))
+  };
 }
 
 function puff(xPct, yPct, char, size){
@@ -287,9 +434,9 @@ function puff(xPct, yPct, char, size){
   anim.onfinish = function(){ p.remove(); };
 }
 
-function burst(cx, cy){
+function burst(cx, cy, n){
   var W = wrapEl.clientWidth;
-  for (var i = 0; i < 12; i++){
+  for (var i = 0; i < (n || 12); i++){
     (function(i){
       var p = document.createElement('span');
       p.className = 'puff';
@@ -297,7 +444,7 @@ function burst(cx, cy){
       p.style.left = cx + '%'; p.style.top = cy + '%';
       p.style.fontSize = (26 + Math.random() * 22) + 'px';
       wrapEl.appendChild(p);
-      var ang = (i / 12) * Math.PI * 2 + Math.random() * .5;
+      var ang = (i / (n || 12)) * Math.PI * 2 + Math.random() * .5;
       var dist = W * (0.14 + Math.random() * 0.14);
       var dx = Math.cos(ang) * dist, dy = Math.sin(ang) * dist;
       var anim = p.animate(
@@ -309,41 +456,80 @@ function burst(cx, cy){
   }
 }
 
-function onSpot(i, btn){
-  if (locked) return;
-  if (i === spot){ foundHer(i); return; }
-  misses++;
-  sndBoop();
+function ring(btn){
   btn.classList.remove('miss'); void btn.offsetWidth; btn.classList.add('miss');
-  var c = spotCenter(i);
+}
+
+function onSpot(s, i, btn){
+  if (locked) return;
+  var k = spotKey(s, i);
+  if (s === hideScene && i === hideSpot){ foundHer(s, i); return; }
+  if (surpriseMap[k] !== undefined){
+    var first = !tapped[k];
+    if (first){ tapped[k] = 'friend'; misses++; }
+    showFriend(s, i, btn, surpriseMap[k], first);
+    if (first && misses % 3 === 0) showHint();
+    return;
+  }
+  if (tapped[k]){
+    ring(btn);
+    return;
+  }
+  tapped[k] = 'empty'; misses++;
+  btn.classList.add('checked');
+  sndBoop();
+  ring(btn);
+  var c = spotCenter(s, i);
   puff(c.x, c.y, '💨', 26);
   if (misses % 3 === 0) showHint();
 }
 
-function showHint(){
-  var btn = spotBtns[spot];
-  if (!btn) return;
-  sndHint();
-  btn.classList.add('hint');
-  if (hintTimer) clearTimeout(hintTimer);
-  hintTimer = setTimeout(function(){ btn.classList.remove('hint'); }, 1500);
+function showFriend(s, i, btn, aIdx, first){
+  sndPop();
+  playAnimal(aIdx);
+  var c = clampPeek(spotCenter(s, i), 38);
+  peekImg.src = 'assets/img/' + ANIMALS[aIdx].img;
+  peekEl.style.left = c.x + '%';
+  peekEl.style.top = c.y + '%';
+  peekEl.classList.remove('show'); void peekEl.offsetWidth;
+  peekEl.classList.add('show', 'friend');
+  burst(c.x, c.y, 7);
+  clearTimeout(peekTimer);
+  peekTimer = setTimeout(function(){
+    peekEl.classList.remove('show', 'friend');
+    if (first && btn.isConnected) addFriendBadge(btn, aIdx);
+  }, 1300);
 }
 
-function foundHer(i){
+function showHint(){
+  sndHint();
+  clearTimeout(hintTimer);
+  spotBtns.forEach(function(b){ b.classList.remove('hint'); });
+  sceneBtns.forEach(function(b){ b.classList.remove('hintTab'); });
+  if (hideScene !== sceneIdx){
+    sceneBtns[hideScene].classList.add('hintTab');
+    hintTimer = setTimeout(function(){
+      sceneBtns[hideScene].classList.remove('hintTab');
+    }, 1600);
+  } else {
+    var btn = spotBtns[hideSpot];
+    if (!btn) return;
+    btn.classList.add('hint');
+    hintTimer = setTimeout(function(){ btn.classList.remove('hint'); }, 1500);
+  }
+}
+
+function foundHer(s, i){
   locked = true;
   document.body.classList.remove('seeking');
   sndFound();
-  var c = spotCenter(i);
-  /* Keep the whole round portrait inside the picture. It is 48% of the
-     width (24% of the height), so clamp its center accordingly. */
-  var cx = Math.min(76, Math.max(24, c.x));
-  var cy = Math.min(88, Math.max(12, c.y));
+  var c = clampPeek(spotCenter(s, i), 48);
   peekImg.src = 'assets/img/' + PRINCESSES[hider];
-  peekEl.style.left = cx + '%';
-  peekEl.style.top = cy + '%';
-  peekEl.classList.remove('show'); void peekEl.offsetWidth;
+  peekEl.style.left = c.x + '%';
+  peekEl.style.top = c.y + '%';
+  peekEl.classList.remove('show', 'friend'); void peekEl.offsetWidth;
   peekEl.classList.add('show');
-  burst(cx, cy);
+  burst(c.x, c.y, 12);
   setTimeout(win, 1500);
 }
 
@@ -378,26 +564,41 @@ function newGame(){
   do { hider = Math.floor(Math.random() * PRINCESSES.length); }
   while (PRINCESSES.length > 1 && hider === lastHider);
   lastHider = hider;
-  do { spot = Math.floor(Math.random() * SPOTS.length); }
-  while (SPOTS.length > 1 && spot === lastSpot);
-  lastSpot = spot;
-  misses = 0; locked = true;
-  if (hintTimer){ clearTimeout(hintTimer); hintTimer = null; }
+  /* Pick her hiding place (never the same one twice running). */
+  var allKeys = [];
+  SCENES.forEach(function(sc, s){
+    sc.spots.forEach(function(sp, i){ allKeys.push(spotKey(s, i)); });
+  });
+  var hk;
+  do { hk = allKeys[Math.floor(Math.random() * allKeys.length)]; }
+  while (allKeys.length > 1 && hk === lastHideKey);
+  lastHideKey = hk;
+  var parts = hk.split(':');
+  hideScene = parseInt(parts[0], 10); hideSpot = parseInt(parts[1], 10);
+  /* 8 surprise friends on 8 other random spots. */
+  surpriseMap = {};
+  var rest = shuffle(allKeys.filter(function(k){ return k !== hk; }));
+  var animals = shuffle(ANIMALS.map(function(a, idx){ return idx; }));
+  for (var n = 0; n < ANIMALS.length && n < rest.length; n++){
+    surpriseMap[rest[n]] = animals[n];
+  }
+  tapped = {}; misses = 0; locked = true;
+  clearTimeout(hintTimer); hintTimer = null;
+  clearTimeout(peekTimer); peekTimer = null;
   document.body.classList.remove('seeking');
   document.getElementById('winOverlay').classList.remove('show');
-  peekEl.classList.remove('show');
+  peekEl.classList.remove('show', 'friend');
   var img = 'assets/img/' + PRINCESSES[hider];
   document.getElementById('findImg').src = img;
   document.getElementById('introImg').src = img;
   peekImg.src = img;
-  buildSpots();
+  showScene(0);
   /* She waves hello, then the sparkle flash hides her. */
   introEl.classList.add('show');
   sndPop();
   setTimeout(function(){
     introEl.classList.remove('show');
-    var c = { x: 50, y: 50 };
-    burst(c.x, c.y);
+    burst(50, 50, 12);
     locked = false;
     document.body.classList.add('seeking');
   }, 1700);

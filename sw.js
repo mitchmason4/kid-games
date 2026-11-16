@@ -2,7 +2,7 @@
    run offline (e.g. on a plane) after the first visit with internet.
    Strategy: stale-while-revalidate — serve the cached copy instantly,
    refresh it in the background, fall back to network when uncached. */
-var CACHE = 'kid-games-v12';
+var CACHE = 'kid-games-v13';
 var CORE = [
   '/kid-games/',
   '/kid-games/memory/',
@@ -73,11 +73,29 @@ var CORE = [
   '/kid-games/sudoku/assets/img/win.jpg',
   '/kid-games/hide-and-seek/',
   '/kid-games/hide-and-seek/assets/img/scene.jpg',
+  '/kid-games/hide-and-seek/assets/img/castle.jpg',
+  '/kid-games/hide-and-seek/assets/img/forest.jpg',
   '/kid-games/hide-and-seek/assets/img/princess-01.jpg',
   '/kid-games/hide-and-seek/assets/img/princess-04.jpg',
   '/kid-games/hide-and-seek/assets/img/princess-07.jpg',
   '/kid-games/hide-and-seek/assets/img/princess-09.jpg',
   '/kid-games/hide-and-seek/assets/img/win.jpg',
+  '/kid-games/hide-and-seek/assets/img/cat.jpg',
+  '/kid-games/hide-and-seek/assets/img/dog.jpg',
+  '/kid-games/hide-and-seek/assets/img/duck.jpg',
+  '/kid-games/hide-and-seek/assets/img/frog.jpg',
+  '/kid-games/hide-and-seek/assets/img/horse.jpg',
+  '/kid-games/hide-and-seek/assets/img/lion.jpg',
+  '/kid-games/hide-and-seek/assets/img/elephant.jpg',
+  '/kid-games/hide-and-seek/assets/img/monkey.jpg',
+  '/kid-games/hide-and-seek/assets/snd/cat.mp3',
+  '/kid-games/hide-and-seek/assets/snd/dog.mp3',
+  '/kid-games/hide-and-seek/assets/snd/duck.mp3',
+  '/kid-games/hide-and-seek/assets/snd/frog.mp3',
+  '/kid-games/hide-and-seek/assets/snd/horse.mp3',
+  '/kid-games/hide-and-seek/assets/snd/lion.mp3',
+  '/kid-games/hide-and-seek/assets/snd/elephant.mp3',
+  '/kid-games/hide-and-seek/assets/snd/monkey.mp3',
   '/kid-games/icon-bubble.png',
   '/kid-games/icon-match.png',
   '/kid-games/icon-dressup.png',

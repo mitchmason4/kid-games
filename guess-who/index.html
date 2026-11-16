@@ -122,7 +122,22 @@
     padding:6px 10px max(10px, env(safe-area-inset-bottom));
     background:rgba(255,255,255,.55); border-top:3px solid rgba(255,255,255,.8);
   }
+  /* Collapsible palette: the chips live in a grid-rows clip that animates
+     between full height and zero; the bar below (toggle + magnifier) stays. */
+  #trayClip { display:grid; grid-template-rows:1fr; transition:grid-template-rows .3s ease; }
+  #trayClipInner { overflow:hidden; min-height:0; }
+  body.tray-collapsed #trayClip { grid-template-rows:0fr; }
+  body.tray-collapsed #trayWrap { padding-top:2px; }
   #tray { display:flex; flex-wrap:wrap; gap:7px; justify-content:center; align-items:center; max-width:860px; margin:0 auto; }
+  #trayBar { display:flex; justify-content:center; align-items:center; gap:22px; padding-top:8px; }
+  #collapseBtn {
+    width:56px; height:56px; border-radius:50%; cursor:pointer; flex:0 0 auto;
+    background:#fff; border:3px solid #e8dff5; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 3px 0 rgba(124,58,237,.25);
+  }
+  #collapseBtn:active { transform:scale(.92); }
+  #collapseBtn svg { width:32px; height:32px; transition:transform .3s ease; }
+  body.tray-collapsed #collapseBtn svg { transform:rotate(180deg); }
   #tray.pulse { animation:trayPulse 1.2s ease-in-out infinite; }
   @keyframes trayPulse {
     0%, 100% { filter:drop-shadow(0 0 0 rgba(255,217,77,0)); }
@@ -145,7 +160,7 @@
   .qchip .mark.no { background:#e74c3c; }
   .qsep { width:3px; height:40px; background:rgba(124,58,237,.25); border-radius:2px; }
   #guessBtn {
-    width:74px; height:74px; border-radius:50%; cursor:pointer; margin-left:6px;
+    width:74px; height:74px; border-radius:50%; cursor:pointer; flex:0 0 auto;
     background:linear-gradient(180deg, #ffe27a, #f7c948); border:4px solid #fff;
     display:flex; align-items:center; justify-content:center;
     box-shadow:0 5px 0 rgba(180,130,0,.45), 0 8px 16px rgba(91,42,134,.2);
@@ -204,7 +219,13 @@
 </header>
 <div id="clueBar"><span id="promptBubble" aria-hidden="true">?</span><span id="clues"></span></div>
 <div id="board"><div id="grid"></div></div>
-<div id="trayWrap"><div id="tray" class="pulse"></div></div>
+<div id="trayWrap">
+  <div id="trayClip"><div id="trayClipInner"><div id="tray" class="pulse"></div></div></div>
+  <div id="trayBar">
+    <button id="collapseBtn" aria-label="Hide or show questions"></button>
+    <button id="guessBtn" aria-label="Guess"></button>
+  </div>
+</div>
 
 <div id="flash"><div class="disc" id="flashDisc"></div></div>
 
@@ -269,6 +290,10 @@ function crossSVG(){ return svgWrap('<path d="M18 18 L46 46 M46 18 L18 46" fill=
 function magnifierSVG(){
   return svgWrap('<circle cx="27" cy="27" r="17" fill="rgba(255,255,255,.45)" stroke="#7a4a00" stroke-width="5"/>'
     + '<line x1="40" y1="40" x2="54" y2="54" stroke="#7a4a00" stroke-width="7" stroke-linecap="round"/>');
+}
+function chevronSVG(){
+  return svgWrap('<path d="M14 22 L32 40 L50 22" fill="none" stroke="#7c3aed" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>'
+    + '<path d="M14 35 L32 53 L50 35" fill="none" stroke="#7c3aed" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity=".45"/>');
 }
 function refreshSVG(color){
   color = color || '#7c3aed';
@@ -358,13 +383,39 @@ var gridEl = document.getElementById('grid'),
     trayEl = document.getElementById('tray'),
     cluesEl = document.getElementById('clues'),
     flashEl = document.getElementById('flash'),
-    flashDisc = document.getElementById('flashDisc'),
-    guessBtn = null;
+    flashDisc = document.getElementById('flashDisc');
 
 document.getElementById('logo').innerHTML = crownSVG();
 document.getElementById('soundBtn').innerHTML = speakerSVG(soundOn);
 document.getElementById('newBtn').innerHTML = refreshSVG();
 document.getElementById('againBtn').innerHTML = refreshSVG('#7a4a00');
+
+/* Magnifier (guess mode) lives in the always-visible bar, not the palette. */
+var guessBtn = document.getElementById('guessBtn');
+guessBtn.innerHTML = magnifierSVG();
+guessBtn.addEventListener('click', function(){
+  if (locked) return;
+  guessing = !guessing;
+  document.body.classList.toggle('guessing', guessing);
+  guessBtn.classList.toggle('active', guessing);
+  sndPop();
+});
+
+/* Collapsible question palette: chips hide, board gets the room. The
+   choice sticks (localStorage) so it stays how she left it. */
+var trayCollapsed = false;
+try { trayCollapsed = localStorage.getItem('guessWhoTray') === 'collapsed'; } catch(e) {}
+function applyTray(){
+  document.body.classList.toggle('tray-collapsed', trayCollapsed);
+}
+document.getElementById('collapseBtn').innerHTML = chevronSVG();
+document.getElementById('collapseBtn').addEventListener('click', function(){
+  trayCollapsed = !trayCollapsed;
+  try { localStorage.setItem('guessWhoTray', trayCollapsed ? 'collapsed' : 'expanded'); } catch(e) {}
+  applyTray();
+  sndPop();
+});
+applyTray();
 
 function renderBest(){
   document.getElementById('bestPill').innerHTML = trophySVG()
@@ -398,17 +449,6 @@ function buildTray(){
     chip.addEventListener('click', function(){ onQuestion(q, chip); });
     trayEl.appendChild(chip);
   });
-  guessBtn = document.createElement('button');
-  guessBtn.id = 'guessBtn'; guessBtn.setAttribute('aria-label', 'Guess');
-  guessBtn.innerHTML = magnifierSVG();
-  guessBtn.addEventListener('click', function(){
-    if (locked) return;
-    guessing = !guessing;
-    document.body.classList.toggle('guessing', guessing);
-    guessBtn.classList.toggle('active', guessing);
-    sndPop();
-  });
-  trayEl.appendChild(guessBtn);
 }
 
 function onQuestion(q, chip){
